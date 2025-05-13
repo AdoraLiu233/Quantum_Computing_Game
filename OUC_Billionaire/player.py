@@ -38,7 +38,8 @@ class Player():
     def draw_player(self):
         """绘制玩家的位置"""
         self.rect = self.image.get_rect()
+        if self.pos >= len(self.locations):
+            self.pos -= len(self.locations)
         self.rect.center = (self.locations[self.pos].x, self.locations[self.pos].y)
-        #print(self.rect.center)
         self.screen.blit(self.image, self.rect)
         

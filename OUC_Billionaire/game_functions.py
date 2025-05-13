@@ -350,6 +350,7 @@ def run_specific_mini_game(ai_settings, screen, gs, current_player):
     game_result = {"message": f"小游戏 '{game_id_for_title}' 未实现或配置错误。", "effect": 0}
 
     if gs.current_mini_game_id == "reaction_test": # Ensure this ID matches your locations_list.txt
+        print("here")
         game_result = mini_game_reaction.play(screen, ai_settings, current_player)
     # elif gs.current_mini_game_id == "memory_cards":
     #     game_result = mini_game_memory_cards.play(screen, ai_settings, current_player)

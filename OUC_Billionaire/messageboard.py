@@ -26,9 +26,9 @@ class Messageboard():
         self.box_color_3 = self.ai_settings.board_color_3
         
         # 设置面板块位置并创建
-        self.box_1 = pygame.Rect(800, 0, 200, 300)
-        self.box_2 = pygame.Rect(800, 300, 200, 300)
-        self.box_3 = pygame.Rect(800, 600, 200, 400)
+        self.box_1 = pygame.Rect(800, 0, 400, 300)
+        self.box_2 = pygame.Rect(800, 300, 400, 300)
+        self.box_3 = pygame.Rect(800, 600, 400, 400)
         
         self.start_minigame_button_rect = None # 初始化为 None
         self.button_font = pygame.font.Font('fonts/Noto_Sans_SC.ttf', 20) # 用于文本按钮
@@ -41,6 +41,7 @@ class Messageboard():
         self.player_rendered_msgs = []
         self.player_msg_rects = []
         # --- 结束新增 ---
+        self.button_rect = pygame.Rect(0, 0, 160, 50)
 
         # 事件消息列表
         self.event_msg = []

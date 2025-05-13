@@ -57,12 +57,14 @@ class Location():
         
 class Dorm(Location):
     """宿舍（继承地点类）"""
-    def __init__(self, ai_settings, screen, index, pos_x, pos_y, msg, mini_game_id):
+    def __init__(self, ai_settings, screen, index, pos_x, pos_y, msg, mini_game_id=None):
         # 继承父类的构造方法
-        super().__init__(ai_settings, screen, index, pos_x, pos_y, msg, mini_game_id=None)
+        super().__init__(ai_settings, screen, index, pos_x, pos_y, msg, mini_game_id)
     
     def trigger_event(self, player = None):
         """触发事件"""
+        if self.mini_game_id:
+            return "TRIGGER_MINI_GAME"
         # 随机事件的编号
         index = 0
         return index
@@ -77,6 +79,8 @@ class ScienceBuilding(Location):
     def trigger_event(self, player):
         """触发事件"""
         # 随机事件的编号
+        if self.mini_game_id:
+            return "TRIGGER_MINI_GAME"
         index = 1
         # 随机传送到一个新的位置
         player.pos = random.randint(0, self.ai_settings.location_cnt)
@@ -92,6 +96,8 @@ class Hall(Location):
     def trigger_event(self, player):
         """触发事件"""
         # 随机事件的编号
+        if self.mini_game_id:
+            return "TRIGGER_MINI_GAME"
         index = 2
         # 传送到校医院
         player.pos = 18
@@ -106,6 +112,8 @@ class Stadium(Location):
     def trigger_event(self, player):
         """触发事件"""
         # 随机事件的编号
+        if self.mini_game_id:
+            return "TRIGGER_MINI_GAME"
         index = 3
         # 随机传送到一个新的位置
         player.pos = random.randint(0, self.ai_settings.location_cnt)
@@ -120,6 +128,8 @@ class MainBuilding(Location):
     def trigger_event(self, player):
         """触发事件"""
         # 随机事件的编号
+        if self.mini_game_id:
+            return "TRIGGER_MINI_GAME"
         index = 4
         # 随机传送到一个新的位置
         player.pos = random.randint(0, self.ai_settings.location_cnt)
@@ -134,6 +144,8 @@ class StudyHall(Location):
     def trigger_event(self, player):
         """触发事件"""
         # 随机事件的编号
+        if self.mini_game_id:
+            return "TRIGGER_MINI_GAME"
         index = 5
         # 随机传送到一个新的位置
         player.pos = random.randint(0, self.ai_settings.location_cnt)
@@ -148,6 +160,8 @@ class Gate(Location):
     def trigger_event(self, player):
         """触发事件"""
         # 随机事件的编号
+        if self.mini_game_id:
+            return "TRIGGER_MINI_GAME"
         index = 6
         # 随机传送到一个新的位置
         player.pos = random.randint(0, self.ai_settings.location_cnt)
@@ -162,6 +176,8 @@ class TechnologyBuilding(Location):
     def trigger_event(self, player):
         """触发事件"""
         # 随机事件的编号
+        if self.mini_game_id:
+            return "TRIGGER_MINI_GAME"
         index = 7
         # 随机传送到一个新的位置
         player.pos = random.randint(0, self.ai_settings.location_cnt)
@@ -176,6 +192,8 @@ class ArtMuseum(Location):
     def trigger_event(self, player):
         """触发事件"""
         # 随机事件的编号
+        if self.mini_game_id:
+            return "TRIGGER_MINI_GAME"
         index = 8
         # 随机传送到一个新的位置
         player.pos = random.randint(0, self.ai_settings.location_cnt)
@@ -185,11 +203,13 @@ class OfficePlace(Location):
     """工字厅（继承地点类）"""
     def __init__(self, ai_settings, screen, index, pos_x, pos_y, msg, mini_game_id=None):
         # 继承父类的构造方法
-        super().__init__(self, ai_settings, screen, index, pos_x, pos_y, msg, mini_game_id)
+        super().__init__(ai_settings, screen, index, pos_x, pos_y, msg, mini_game_id)
     
     def trigger_event(self, player):
         """触发事件"""
         # 随机事件的编号
+        if self.mini_game_id:
+            return "TRIGGER_MINI_GAME"
         index = 9
         # 随机传送到一个新的位置
         player.pos = random.randint(0, self.ai_settings.location_cnt)

@@ -25,6 +25,11 @@ class Settings():
 
         # 用于从其他模块安全访问地点实例列表 (例如传送功能)
         self.locations_instance_list = []
+
+        # 小游戏列表
+        self.minigame_configs={
+            "reaction_test": {"name": "反应力测试"},
+        }
         
         # 设置游戏开始前的背景图片
         self.bg_image = pygame.image.load("images/enter.png")
