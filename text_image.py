@@ -11,7 +11,7 @@ import os
 
 class TextImage:
     """文字转换为图像的类"""
-    font = ImageFont.truetype("simhei.ttf", 18)
+    font = ImageFont.truetype("fonts/Noto_Sans_SC.ttf", 18)
     
     def __init__(self, text):
         # 预设图片宽度
@@ -76,7 +76,6 @@ def read_events_list():
     file_path = "OUC_Billionaire/data/events_list.json"
     with open(file_path, encoding = ('utf-8')) as file:
         events_dict = json.load(file)
-        #print(events_dict)
         return events_dict
 
 if __name__ == '__main__':
@@ -85,8 +84,6 @@ if __name__ == '__main__':
     events_dict = read_events_list()
     events_list = events_dict['events']
     for event in events_list:
-        #index = int(event['index'])
-        #print(event)
         save_path = ("OUC_Billionaire/event_images/event_" + 
                      str(event['index']).zfill(3))
         # 如果该目录不存在，则创建
@@ -122,6 +119,3 @@ if __name__ == '__main__':
             text_B2.draw_text((save_path + "/result_B.png"), bg_color_1)
             text_C1.draw_text((save_path + "/choice_C.png"), bg_color_2)
             text_C2.draw_text((save_path + "/result_C.png"), bg_color_1)
-    
-    #n = TextImage("发生的事件为zzy去干嘛了我也不知打啊" * 5)
-    #n.draw_text()
