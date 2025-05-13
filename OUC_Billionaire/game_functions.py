@@ -8,19 +8,65 @@ Created on Mon Jun 10 22:05:22 2019
 import sys
 import pygame
 from location import Location
-from location import Hospital
-from location import ChemistryInstitute
-from location import SouthDistrict
+from location import Dorm
+from location import ScienceBuilding
+from location import Hall
+from location import Stadium
+from location import MainBuilding
+from location import StudyHall
+from location import Gate
+from location import TechnologyBuilding
+from location import ArtMuseum
+from location import OfficePlace
 import json
 from player import Player
 import os
 import mini_game_reaction
+import math
+
+def draw_dashed_arrow(screen, color, start, end, dash_length=10, space_length=5, arrow_size=10):
+    # 向量差
+    dx = end[0] - start[0]
+    dy = end[1] - start[1]
+    distance = math.hypot(dx, dy)
+    angle = math.atan2(dy, dx)
+
+    # 单位向量
+    x_unit = math.cos(angle)
+    y_unit = math.sin(angle)
+
+    # 虚线部分
+    drawn = 0
+    while drawn + dash_length < distance - arrow_size:
+        start_x = start[0] + x_unit * drawn
+        start_y = start[1] + y_unit * drawn
+        end_x = start[0] + x_unit * (drawn + dash_length)
+        end_y = start[1] + y_unit * (drawn + dash_length)
+        pygame.draw.line(screen, color, (start_x, start_y), (end_x, end_y), 2)
+        drawn += dash_length + space_length
+
+    # 箭头部分
+    # 箭头基准角度是主线角度 + 120° 和 -120°
+    arrow_tip = end
+    left_angle = angle + math.radians(150)
+    right_angle = angle - math.radians(150)
+
+    left_point = (
+        arrow_tip[0] + math.cos(left_angle) * arrow_size,
+        arrow_tip[1] + math.sin(left_angle) * arrow_size,
+    )
+    right_point = (
+        arrow_tip[0] + math.cos(right_angle) * arrow_size,
+        arrow_tip[1] + math.sin(right_angle) * arrow_size,
+    )
+
+    pygame.draw.polygon(screen, color, [arrow_tip, left_point, right_point])
+
 
 def update_screen(ai_settings, screen, gs, play_button, locations,
                   location_points, event_imgs, messageboard, dice, pq): # 删除了 events_dict，messageboard 自己有
     """更新屏幕上的图像，并切换到新屏幕"""
     screen.fill(ai_settings.bg_color)
-
     if gs.game_active:
         if gs.game_state == ai_settings.MINI_GAME_ACTIVE:
             # 小游戏活动时，屏幕更新由小游戏本身负责。
@@ -176,12 +222,26 @@ def check_click_events(ai_settings, gs, play_button, locations, events_dict,
 
 def create_location(ai_settings, screen, locations, index, x, y, name, mini_game_id):
     """创建一个地点"""
-    if name == "校医院":
-        location = Hospital(ai_settings, screen, index, x, y, name, mini_game_id)
-    elif name == "化院":
-        location = ChemistryInstitute(ai_settings, screen, index, x, y, name, mini_game_id)
-    elif name == "南区":
-        location = SouthDistrict(ai_settings, screen, index, x, y, name, mini_game_id)
+    if name == "宿舍区":
+        location = Dorm(ai_settings, screen, index, x, y, name, mini_game_id)
+    elif name == "理科楼":
+        location = ScienceBuilding(ai_settings, screen, index, x, y, name, mini_game_id)
+    elif name == "工字厅":
+        location = OfficePlace(ai_settings, screen, index, x, y, name, mini_game_id)
+    elif name == "大礼堂":
+        location = Hall(ai_settings, screen, index, x, y, name, mini_game_id)
+    elif name == "综合体育馆":
+        location = Stadium(ai_settings, screen, index, x, y, name, mini_game_id)
+    elif name == "清华主楼":
+        location = MainBuilding(ai_settings, screen, index, x, y, name, mini_game_id)
+    elif name == "清华学堂":
+        location = StudyHall(ai_settings, screen, index, x, y, name, mini_game_id)
+    elif name == "科技楼":
+        location = TechnologyBuilding(ai_settings, screen, index, x, y, name, mini_game_id)
+    elif name == "艺术博物馆":
+        location = ArtMuseum(ai_settings, screen, index, x, y, name, mini_game_id)
+    elif name == "二校门":
+        location = Gate(ai_settings, screen, index, x, y, name, mini_game_id)
     else:
         location = Location(ai_settings, screen, index, x, y, name, mini_game_id)
     locations.append(location)
