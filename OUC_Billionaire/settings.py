@@ -11,8 +11,8 @@ class Settings():
     """初始化游戏设置"""
     def __init__(self):
         # 设置屏幕的大小和颜色
-        self.screen_width = 1320
-        self.screen_height = 660
+        self.screen_width = 1000
+        self.screen_height = 1100  #660
         self.bg_color = (230, 230, 230)
         
         # 设置游戏统计信息
@@ -21,7 +21,7 @@ class Settings():
         self.END_ROUND = 2
         
         # 设置游戏开始前的背景图片
-        self.bg_image = pygame.image.load("images/ouc_billionaire.png")
+        self.bg_image = pygame.image.load("images/enter.png")
         # 设置开始游戏按钮
         self.play_button = pygame.image.load("images/play_button.png")
         
