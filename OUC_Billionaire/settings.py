@@ -19,6 +19,12 @@ class Settings():
         self.ROLL_DICE = 0
         self.CHOOSE = 1
         self.END_ROUND = 2
+        self.MINI_GAME_STARTING = 3 # 准备进入小游戏
+        self.MINI_GAME_ACTIVE = 4   # 小游戏正在进行
+        self.SHOW_MINI_GAME_RESULT = 5 # 显示小游戏结果
+
+        # 用于从其他模块安全访问地点实例列表 (例如传送功能)
+        self.locations_instance_list = []
         
         # 设置游戏开始前的背景图片
         self.bg_image = pygame.image.load("images/enter.png")

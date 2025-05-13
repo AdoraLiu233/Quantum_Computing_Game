@@ -21,9 +21,7 @@ from location import OfficePlace
 import json
 from player import Player
 import os
-import math
-
-import pygame
+import mini_game_reaction
 import math
 
 def draw_dashed_arrow(screen, color, start, end, dash_length=10, space_length=5, arrow_size=10):
@@ -65,133 +63,187 @@ def draw_dashed_arrow(screen, color, start, end, dash_length=10, space_length=5,
     pygame.draw.polygon(screen, color, [arrow_tip, left_point, right_point])
 
 
-def update_screen(ai_settings, screen, gs, play_button, locations, 
-                  location_points, event, event_imgs, messageboard, dice, pq):
+def update_screen(ai_settings, screen, gs, play_button, locations,
+                  location_points, event_imgs, messageboard, dice, pq): # 删除了 events_dict，messageboard 自己有
     """更新屏幕上的图像，并切换到新屏幕"""
-    # 每次循环时都重新绘制屏幕
     screen.fill(ai_settings.bg_color)
-    
-    # 游戏被激活，则显示游戏界面
-    if gs.game_active == True:
-        #`绘制地图
-        screen.blit(ai_settings.map, (0, 0))
-        # # 绘制所有地点
-        # for location in locations:
-        #     location.draw_location()
-        # 绘制地点之间的连线
-        for i in range(len(location_points)):
-            start = location_points[i]
-            end = location_points[(i + 1) % len(location_points)]  # 闭环
-            draw_dashed_arrow(screen, (128, 0, 128), start, end)
-        # pygame.draw.lines(screen, ai_settings.line_color, True, location_points, 3)
-        # 绘制所有的玩家
-        pq.reverse_draw()
-        # 绘制信息板
-        messageboard.draw_messageboard(gs, event_imgs, pq)
-        # 绘制骰子
-        dice.draw_dice(dice.cur_dice)
-    # 否则显示开始游戏界面
-    else:
+    if gs.game_active:
+        if gs.game_state == ai_settings.MINI_GAME_ACTIVE:
+            # 小游戏活动时，屏幕更新由小游戏本身负责。
+            # 此处可以什么都不画，或者画一个简单的“小游戏进行中”的提示。
+            # font = pygame.font.SysFont('SimHei', 50)
+            # text = font.render("小游戏进行中...", True, (0,0,0))
+            # text_rect = text.get_rect(center=screen.get_rect().center)
+            # screen.blit(text, text_rect)
+            pass # 假设小游戏会自己刷新整个屏幕
+        else:
+            # 绘制地图等主游戏元素
+            screen.blit(ai_settings.map, (0, 0))
+            for location in locations:
+                location.draw_location()
+            pygame.draw.lines(screen, ai_settings.line_color, True, location_points, 3)
+            pq.reverse_draw() # 绘制玩家
+            messageboard.draw_messageboard(gs, event_imgs, pq) # 绘制信息板 (event_imgs可能用不到了，看gs.cur_event_imgs)
+            if gs.game_state == ai_settings.ROLL_DICE : # 只在掷骰子阶段画骰子
+                dice.draw_dice(dice.cur_dice)
+    else: # 游戏未激活
         screen.blit(ai_settings.bg_image, (0, 0))
         play_button.draw_button()
-        
-    # 显示最新绘制的屏幕
+
     pygame.display.flip()
 
 def check_events(ai_settings, gs, play_button, locations, events_dict, 
                  events_imgs, messageboard, dice, pq):
     """监视并相应鼠标和键盘事件"""
+    if gs.game_state == ai_settings.MINI_GAME_ACTIVE:
+        # 小游戏通常有自己的事件处理循环。
+        # 如果小游戏不是阻塞式的，你可能需要在这里传递事件给小游戏：
+        # for event in pygame.event.get():
+        #     if event.type == pygame.QUIT: # 全局退出还是要处理
+        #         pygame.quit()
+        #         sys.exit()
+        #     # current_active_minigame.handle_event(event)
+        # 或者，如果小游戏是阻塞的（如下面 run_specific_mini_game 所示），则这里不需要做什么特别的。
+        # 只需要确保QUIT事件能被小游戏内部的循环捕获并正确退出。
+        # 为了简单起见，我们假设小游戏会处理自己的QUIT。
+        return # 主事件循环暂时不处理，等待小游戏结束
+
     for event in pygame.event.get():
         # 退出事件
         if event.type == pygame.QUIT:
             pygame.quit()
             sys.exit()
         if event.type == pygame.MOUSEBUTTONDOWN:
-            check_click_events(ai_settings, gs, play_button, locations, 
-                               events_dict, events_imgs, messageboard, dice, 
-                               pq)
+            # 确保在调用 check_click_events 之前游戏是激活的
+            if gs.game_active:
+                 check_click_events(ai_settings, gs, play_button, locations,
+                                   events_dict, events_imgs, messageboard, dice, pq)
+            elif play_button.img_rect.collidepoint(pygame.mouse.get_pos()): # 处理游戏未激活时点击开始按钮
+                 check_click_events(ai_settings, gs, play_button, locations,
+                                   events_dict, events_imgs, messageboard, dice, pq)
 
 def check_click_events(ai_settings, gs, play_button, locations, events_dict, 
                        events_imgs, messageboard, dice, pq):
     """处理鼠标点击事件的函数"""
     # 定位鼠标点击位置
     mouse_x, mouse_y = pygame.mouse.get_pos()
-    #print(mouse_x, mouse_y)
-    # 检测游戏是否处于激活状态
-    if gs.game_active == True:
-        # 如果此时应该掷骰子
-        if gs.game_state == ai_settings.ROLL_DICE:
-            # 检测点击位置是否在骰子图片区域内
-            if dice.rect.collidepoint(mouse_x, mouse_y):
-                # 获得骰子的点数
-                step = dice.roll_dice()
-                # 玩家移动相应的点数
-                pq.cur_player.move(step)
-                # 随机得到事件的编号（列表下标）
-                gs.cur_event_index = locations[pq.cur_player.pos].trigger_event(
-                        pq.cur_player)
-                gs.cur_event_imgs = events_imgs[gs.cur_event_index]
-                # 如果随机得到的事件是多项选择事件，则进入选择阶段
-                if events_dict[gs.cur_event_index]['type'] == "multiple_choice":
-                    gs.game_state = ai_settings.CHOOSE
-                # 否则跳过选择阶段，直接进入结束回合阶段
-                else:
-                    pq.cur_player.invest(events_dict[gs.cur_event_index]['change'])
-                    gs.game_state = ai_settings.END_ROUND
-        # 如果此时应该进行选择，则判断点击位置在哪个选项的区域内
-        elif gs.game_state == ai_settings.CHOOSE:
-            # 选项 A
-            if messageboard.event_msg_rect[1].collidepoint(mouse_x, mouse_y):
-                gs.cur_event_imgs = gs.cur_event_imgs['A']
-                pq.cur_player.invest(events_dict[gs.cur_event_index]['A']['change'])
-            # 选项 B
-            elif messageboard.event_msg_rect[2].collidepoint(mouse_x, mouse_y):
-                gs.cur_event_imgs = gs.cur_event_imgs['B']
-                pq.cur_player.invest(events_dict[gs.cur_event_index]['B']['change'])
-            # 选项 C
-            elif messageboard.event_msg_rect[3].collidepoint(mouse_x, mouse_y):
-                gs.cur_event_imgs = gs.cur_event_imgs['C']
-                pq.cur_player.invest(events_dict[gs.cur_event_index]['C']['change'])
-            # 不在点击范围内
-            else:
-                return
-            gs.game_state = ai_settings.END_ROUND
-        # 如果此时应该结束回合，则判断点击位置是否在结束回合按钮区域内
-        elif gs.game_state == ai_settings.END_ROUND:
-            if messageboard.button_rect.collidepoint(mouse_x, mouse_y):
-                gs.cur_event = None
-                pq.next_round()
-                gs.game_state = ai_settings.ROLL_DICE
-    # 游戏未激活
-    else:
-        # 检测是否点击开始游戏按钮
+
+    if not gs.game_active:
         if play_button.img_rect.collidepoint(mouse_x, mouse_y):
             gs.game_active = True
+            gs.game_state = ai_settings.ROLL_DICE # 游戏开始，准备掷骰子
+        return # 如果游戏未激活，则不处理其他点击
 
-def create_location(ai_settings, screen, locations, index, x, y, name):
+    # 游戏激活后的点击事件处理
+    if gs.game_state == ai_settings.ROLL_DICE:
+        if dice.rect.collidepoint(mouse_x, mouse_y):
+            step = dice.roll_dice()
+            pq.cur_player.move(step)
+            current_loc = locations[pq.cur_player.pos]
+            gs.cur_event_index = current_loc.trigger_event(pq.cur_player) # cur_event_index 现在可以是字符串
+
+            gs.cur_event_imgs = None # 重置事件图片
+            gs.mini_game_result_message = "" # 重置小游戏结果
+
+            if gs.cur_event_index == "TRIGGER_MINI_GAME":
+                gs.current_mini_game_id = current_loc.mini_game_id
+                gs.game_state = ai_settings.MINI_GAME_STARTING # 进入小游戏准备阶段
+                # 此处可以给messageboard发消息，例如 "即将开始小游戏：xxx"
+                # print(f"Player {pq.cur_player.player_name} landed on a minigame: {gs.current_mini_game_id}")
+            elif isinstance(gs.cur_event_index, int): # 是普通事件索引
+                if 0 <= gs.cur_event_index < len(events_dict) and 0 <= gs.cur_event_index < len(events_imgs):
+                    gs.cur_event_imgs = events_imgs[gs.cur_event_index]
+                    if events_dict[gs.cur_event_index]['type'] == "multiple_choice":
+                        gs.game_state = ai_settings.CHOOSE
+                    else:
+                        pq.cur_player.invest(events_dict[gs.cur_event_index]['change'])
+                        gs.game_state = ai_settings.END_ROUND
+                else:
+                    print(f"Error: Event index {gs.cur_event_index} out of bounds or invalid event data.")
+                    gs.game_state = ai_settings.END_ROUND # 出错则直接结束回合
+            else:
+                print(f"Warning: Unknown event index type: {gs.cur_event_index}")
+                gs.game_state = ai_settings.END_ROUND
+
+    elif gs.game_state == ai_settings.CHOOSE:
+        # ... (保持你现有的CHOOSE逻辑) ...
+        # 选择后，设置 gs.game_state = ai_settings.END_ROUND
+        chosen = False
+        if messageboard.event_msg_rect[1].collidepoint(mouse_x, mouse_y):
+            gs.cur_event_imgs = gs.cur_event_imgs['A']
+            pq.cur_player.invest(events_dict[gs.cur_event_index]['A']['change'])
+            chosen = True
+        elif messageboard.event_msg_rect[2].collidepoint(mouse_x, mouse_y):
+            gs.cur_event_imgs = gs.cur_event_imgs['B']
+            pq.cur_player.invest(events_dict[gs.cur_event_index]['B']['change'])
+            chosen = True
+        elif messageboard.event_msg_rect[3].collidepoint(mouse_x, mouse_y):
+            gs.cur_event_imgs = gs.cur_event_imgs['C']
+            pq.cur_player.invest(events_dict[gs.cur_event_index]['C']['change'])
+            chosen = True
+
+        if chosen:
+            gs.game_state = ai_settings.END_ROUND
+        else: #没点到选项
+            return
+
+
+    elif gs.game_state == ai_settings.MINI_GAME_STARTING:
+        # 这个状态下，通常 Messageboard 会显示 "点击开始小游戏" 或类似按钮
+        # 假设 Messageboard 有一个 start_minigame_button_rect
+        if messageboard.start_minigame_button_rect and \
+           messageboard.start_minigame_button_rect.collidepoint(mouse_x, mouse_y):
+            gs.game_state = ai_settings.MINI_GAME_ACTIVE
+            # 在这里，主游戏循环会将控制权（部分或全部）交给小游戏模块
+            # 小游戏模块执行完毕后，会设置 gs.mini_game_result_message 和 gs.game_state
+            # screen 对象需要传递给小游戏函数
+            # run_specific_mini_game(ai_settings, screen, gs, pq.cur_player) # 这是下一步要创建的
+        # 如果没有点击开始按钮，则停留在 MINI_GAME_STARTING 状态
+
+    elif gs.game_state == ai_settings.SHOW_MINI_GAME_RESULT:
+        # 显示小游戏结果后，等待玩家点击“结束回合”按钮
+        if messageboard.button_rect.collidepoint(mouse_x, mouse_y):
+            # （可选）根据 gs.mini_game_player_effect 应用小游戏结果带来的实际影响
+            # if gs.mini_game_player_effect is not None:
+            #     pq.cur_player.invest(gs.mini_game_player_effect)
+
+            gs.mini_game_result_message = "" # 清理结果
+            gs.mini_game_player_effect = None
+            gs.current_mini_game_id = None
+            gs.cur_event_imgs = None
+            pq.next_round()
+            gs.game_state = ai_settings.ROLL_DICE
+
+    elif gs.game_state == ai_settings.END_ROUND:
+        if messageboard.button_rect.collidepoint(mouse_x, mouse_y):
+            gs.cur_event_imgs = None
+            pq.next_round()
+            gs.game_state = ai_settings.ROLL_DICE
+
+def create_location(ai_settings, screen, locations, index, x, y, name, mini_game_id):
     """创建一个地点"""
     if name == "宿舍区":
-        location = Dorm(ai_settings, screen, index, x, y, name)
+        location = Dorm(ai_settings, screen, index, x, y, name, mini_game_id)
     elif name == "理科楼":
-        location = ScienceBuilding(ai_settings, screen, index, x, y, name)
+        location = ScienceBuilding(ai_settings, screen, index, x, y, name, mini_game_id)
     elif name == "工字厅":
-        location = OfficePlace(ai_settings, screen, index, x, y, name)
+        location = OfficePlace(ai_settings, screen, index, x, y, name, mini_game_id)
     elif name == "大礼堂":
-        location = Hall(ai_settings, screen, index, x, y, name)
+        location = Hall(ai_settings, screen, index, x, y, name, mini_game_id)
     elif name == "综合体育馆":
-        location = Stadium(ai_settings, screen, index, x, y, name)
+        location = Stadium(ai_settings, screen, index, x, y, name, mini_game_id)
     elif name == "清华主楼":
-        location = MainBuilding(ai_settings, screen, index, x, y, name)
+        location = MainBuilding(ai_settings, screen, index, x, y, name, mini_game_id)
     elif name == "清华学堂":
-        location = StudyHall(ai_settings, screen, index, x, y, name)
+        location = StudyHall(ai_settings, screen, index, x, y, name, mini_game_id)
     elif name == "科技楼":
-        location = TechnologyBuilding(ai_settings, screen, index, x, y, name)
+        location = TechnologyBuilding(ai_settings, screen, index, x, y, name, mini_game_id)
     elif name == "艺术博物馆":
-        location = ArtMuseum(ai_settings, screen, index, x, y, name)
+        location = ArtMuseum(ai_settings, screen, index, x, y, name, mini_game_id)
     elif name == "二校门":
-        location = Gate(ai_settings, screen, index, x, y, name)
+        location = Gate(ai_settings, screen, index, x, y, name, mini_game_id)
     else:
-        location = Location(ai_settings, screen, index, x, y, name)
+        location = Location(ai_settings, screen, index, x, y, name, mini_game_id)
     locations.append(location)
 
 def create_all_locations(ai_settings, screen, locations, location_points):
@@ -200,9 +252,9 @@ def create_all_locations(ai_settings, screen, locations, location_points):
     ai_settings.location_cnt = len(data)
     for i in range(0, ai_settings.location_cnt):
         create_location(ai_settings, screen, locations, i, int(data[i][0]), 
-                        int(data[i][1]), data[i][2])
+                        int(data[i][1]), data[i][2], data[i][3])
         location_points.append([int(data[i][0]), int(data[i][1])])
-        #print(int(data[i][0]), int(data[i][1]), data[i][2])
+    ai_settings.locations_instance_list = locations
         
 def read_locations_list(ai_settings):
     """从txt文件中读取地点信息"""
@@ -210,10 +262,10 @@ def read_locations_list(ai_settings):
     with open(ai_settings.locations_data_path, encoding = ('utf-8')) as file_data:
         for line in file_data:
             line = line.rstrip()
-            x, y, name = line.split(' ')
-            data.append([x, y, name])
-            #print(x, y, name)
-    #print(data)
+            parts = line.split(' ')
+            x, y, name = parts[0], parts[1], parts[2]
+            mini_game_id = parts[3] if len(parts) > 3 and parts[3].lower() != 'none' else None
+            data.append([x, y, name, mini_game_id])
     return data
 
 def read_events_list(ai_settings):
@@ -282,16 +334,49 @@ def read_event_images(ai_settings):
     #print(len(event_images))
     return event_images
 
+def run_specific_mini_game(ai_settings, screen, gs, current_player):
+    """
+    根据 gs.current_mini_game_id 调用并运行相应的小游戏。
+    小游戏应该处理自己的事件循环和屏幕绘制。
+    小游戏结束后，需要设置:
+    - gs.mini_game_result_message (例如 "游戏胜利！")
+    - gs.mini_game_player_effect (例如 玩家金钱变化值)
+    - gs.game_state = ai_settings.SHOW_MINI_GAME_RESULT
+    """
+    original_caption = pygame.display.get_caption()
+    game_id_for_title = gs.current_mini_game_id if gs.current_mini_game_id else "未知游戏"
+    pygame.display.set_caption(f"小游戏: {game_id_for_title}")
+
+    game_result = {"message": f"小游戏 '{game_id_for_title}' 未实现或配置错误。", "effect": 0}
+
+    if gs.current_mini_game_id == "reaction_test": # Ensure this ID matches your locations_list.txt
+        game_result = mini_game_reaction.play(screen, ai_settings, current_player)
+    # elif gs.current_mini_game_id == "memory_cards":
+    #     game_result = mini_game_memory_cards.play(screen, ai_settings, current_player)
+    # # Add other mini-games here
+    else:
+        print(f"Warning: Attempted to run unknown or unhandled minigame ID '{gs.current_mini_game_id}'")
+        # Fallback message already set in game_result init
+
+    gs.mini_game_result_message = game_result["message"]
+    gs.mini_game_player_effect = game_result["effect"] # Store the effect
+
+    # Apply the effect to the player
+    if isinstance(gs.mini_game_player_effect, (int, float)):
+        current_player.invest(gs.mini_game_player_effect)
+    else:
+        print(f"Warning: Minigame effect '{gs.mini_game_player_effect}' is not a number.")
+
+
+    pygame.display.set_caption(original_caption[0])
+    gs.game_state = ai_settings.SHOW_MINI_GAME_RESULT
+
 def create_player_queue(ai_settings, screen, locations, pq):
     # 创建所有玩家
     player1 = Player(ai_settings, screen, locations, 1, "曾致元")
     player2 = Player(ai_settings, screen, locations, 2, "孙镜涛")
     player3 = Player(ai_settings, screen, locations, 3, "鞠丰禧")
-    player4 = Player(ai_settings, screen, locations, 4, "罗立娜")
-    player5 = Player(ai_settings, screen, locations, 5, "李亚菲")
     # 将所有玩家加入游戏队列
     pq.add_player(player1)
     pq.add_player(player2)
     pq.add_player(player3)
-    pq.add_player(player4)
-    pq.add_player(player5)

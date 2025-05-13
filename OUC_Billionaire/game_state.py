@@ -19,4 +19,8 @@ class GameState():
         self.cur_event_imgs = None
         # 游戏当前事件在事件列表中的下标
         self.cur_event_index = 0
+
+        self.current_mini_game_id = None    # 当前激活的小游戏ID (例如 "game1")
+        self.mini_game_result_message = ""  # 小游戏结束后的结果信息 (例如 "游戏胜利！获得200金钱！")
+        self.mini_game_player_effect = None # 小游戏对玩家产生的具体效果（例如金钱变化量）
         
