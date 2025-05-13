@@ -8,12 +8,62 @@ Created on Mon Jun 10 22:05:22 2019
 import sys
 import pygame
 from location import Location
-from location import Hospital
-from location import ChemistryInstitute
-from location import SouthDistrict
+from location import Dorm
+from location import ScienceBuilding
+from location import Hall
+from location import Stadium
+from location import MainBuilding
+from location import StudyHall
+from location import Gate
+from location import TechnologyBuilding
+from location import ArtMuseum
+from location import OfficePlace
 import json
 from player import Player
 import os
+import math
+
+import pygame
+import math
+
+def draw_dashed_arrow(screen, color, start, end, dash_length=10, space_length=5, arrow_size=10):
+    # 向量差
+    dx = end[0] - start[0]
+    dy = end[1] - start[1]
+    distance = math.hypot(dx, dy)
+    angle = math.atan2(dy, dx)
+
+    # 单位向量
+    x_unit = math.cos(angle)
+    y_unit = math.sin(angle)
+
+    # 虚线部分
+    drawn = 0
+    while drawn + dash_length < distance - arrow_size:
+        start_x = start[0] + x_unit * drawn
+        start_y = start[1] + y_unit * drawn
+        end_x = start[0] + x_unit * (drawn + dash_length)
+        end_y = start[1] + y_unit * (drawn + dash_length)
+        pygame.draw.line(screen, color, (start_x, start_y), (end_x, end_y), 2)
+        drawn += dash_length + space_length
+
+    # 箭头部分
+    # 箭头基准角度是主线角度 + 120° 和 -120°
+    arrow_tip = end
+    left_angle = angle + math.radians(150)
+    right_angle = angle - math.radians(150)
+
+    left_point = (
+        arrow_tip[0] + math.cos(left_angle) * arrow_size,
+        arrow_tip[1] + math.sin(left_angle) * arrow_size,
+    )
+    right_point = (
+        arrow_tip[0] + math.cos(right_angle) * arrow_size,
+        arrow_tip[1] + math.sin(right_angle) * arrow_size,
+    )
+
+    pygame.draw.polygon(screen, color, [arrow_tip, left_point, right_point])
+
 
 def update_screen(ai_settings, screen, gs, play_button, locations, 
                   location_points, event, event_imgs, messageboard, dice, pq):
@@ -25,11 +75,15 @@ def update_screen(ai_settings, screen, gs, play_button, locations,
     if gs.game_active == True:
         #`绘制地图
         screen.blit(ai_settings.map, (0, 0))
-        # 绘制所有地点
-        for location in locations:
-            location.draw_location()
+        # # 绘制所有地点
+        # for location in locations:
+        #     location.draw_location()
         # 绘制地点之间的连线
-        pygame.draw.lines(screen, ai_settings.line_color, True, location_points, 3)
+        for i in range(len(location_points)):
+            start = location_points[i]
+            end = location_points[(i + 1) % len(location_points)]  # 闭环
+            draw_dashed_arrow(screen, (128, 0, 128), start, end)
+        # pygame.draw.lines(screen, ai_settings.line_color, True, location_points, 3)
         # 绘制所有的玩家
         pq.reverse_draw()
         # 绘制信息板
@@ -116,12 +170,26 @@ def check_click_events(ai_settings, gs, play_button, locations, events_dict,
 
 def create_location(ai_settings, screen, locations, index, x, y, name):
     """创建一个地点"""
-    if name == "校医院":
-        location = Hospital(ai_settings, screen, index, x, y, name)
-    elif name == "化院":
-        location = ChemistryInstitute(ai_settings, screen, index, x, y, name)
-    elif name == "南区":
-        location = SouthDistrict(ai_settings, screen, index, x, y, name)
+    if name == "宿舍区":
+        location = Dorm(ai_settings, screen, index, x, y, name)
+    elif name == "理科楼":
+        location = ScienceBuilding(ai_settings, screen, index, x, y, name)
+    elif name == "工字厅":
+        location = OfficePlace(ai_settings, screen, index, x, y, name)
+    elif name == "大礼堂":
+        location = Hall(ai_settings, screen, index, x, y, name)
+    elif name == "综合体育馆":
+        location = Stadium(ai_settings, screen, index, x, y, name)
+    elif name == "清华主楼":
+        location = MainBuilding(ai_settings, screen, index, x, y, name)
+    elif name == "清华学堂":
+        location = StudyHall(ai_settings, screen, index, x, y, name)
+    elif name == "科技楼":
+        location = TechnologyBuilding(ai_settings, screen, index, x, y, name)
+    elif name == "艺术博物馆":
+        location = ArtMuseum(ai_settings, screen, index, x, y, name)
+    elif name == "二校门":
+        location = Gate(ai_settings, screen, index, x, y, name)
     else:
         location = Location(ai_settings, screen, index, x, y, name)
     locations.append(location)
