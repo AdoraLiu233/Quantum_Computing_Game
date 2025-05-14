@@ -24,3 +24,4 @@ class GameState():
         self.mini_game_result_message = ""  # 小游戏结束后的结果信息 (例如 "游戏胜利！获得200金钱！")
         self.mini_game_player_effect = None # 小游戏对玩家产生的具体效果（例如金钱变化量）
         
+        
