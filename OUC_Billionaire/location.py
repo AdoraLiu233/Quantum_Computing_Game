@@ -19,6 +19,7 @@ class Location():
         self.radius = ai_settings.circle_radius
         self.name = msg
         self.mini_game_id = mini_game_id # Store mini-game ID
+        self.isShop = False
         self.text_color = (30, 30, 30)
         self.font = pygame.font.Font('fonts/Noto_Sans_SC.ttf', 20)
         self.color = self.ai_settings.circle_color
@@ -60,11 +61,14 @@ class Dorm(Location):
     def __init__(self, ai_settings, screen, index, pos_x, pos_y, msg, mini_game_id=None):
         # 继承父类的构造方法
         super().__init__(ai_settings, screen, index, pos_x, pos_y, msg, mini_game_id)
+        self.mini_game_id=0
     
     def trigger_event(self, player = None):
         """触发事件"""
         if self.mini_game_id:
             return "TRIGGER_MINI_GAME"
+        elif self.isShop:
+            return "TRIGGER_SHOP"
         # 随机事件的编号
         index = 0
         return index
@@ -75,12 +79,14 @@ class ScienceBuilding(Location):
     def __init__(self, ai_settings, screen, index, pos_x, pos_y, msg, mini_game_id=None):
         # 继承父类的构造方法
         super().__init__(ai_settings, screen, index, pos_x, pos_y, msg, mini_game_id)
-    
+        self.mini_game_id=0
     def trigger_event(self, player):
         """触发事件"""
         # 随机事件的编号
         if self.mini_game_id:
             return "TRIGGER_MINI_GAME"
+        elif self.isShop:
+            return "TRIGGER_SHOP"
         index = 1
         # 随机传送到一个新的位置
         player.pos = random.randint(0, self.ai_settings.location_cnt)
@@ -92,12 +98,14 @@ class Hall(Location):
     def __init__(self, ai_settings, screen, index, pos_x, pos_y, msg, mini_game_id=None):
         # 继承父类的构造方法
         super().__init__(ai_settings, screen, index, pos_x, pos_y, msg, mini_game_id)
-    
+        self.mini_game_id=1
     def trigger_event(self, player):
         """触发事件"""
         # 随机事件的编号
         if self.mini_game_id:
             return "TRIGGER_MINI_GAME"
+        elif self.isShop:
+            return "TRIGGER_SHOP"
         index = 2
         # 传送到校医院
         player.pos = 18
@@ -108,12 +116,14 @@ class Stadium(Location):
     def __init__(self, ai_settings, screen, index, pos_x, pos_y, msg, mini_game_id=None):
         # 继承父类的构造方法
         super().__init__(ai_settings, screen, index, pos_x, pos_y, msg, mini_game_id)
-    
+        self.mini_game_id=2
     def trigger_event(self, player):
         """触发事件"""
         # 随机事件的编号
         if self.mini_game_id:
             return "TRIGGER_MINI_GAME"
+        elif self.isShop:
+            return "TRIGGER_SHOP"
         index = 3
         # 随机传送到一个新的位置
         player.pos = random.randint(0, self.ai_settings.location_cnt)
@@ -124,12 +134,15 @@ class MainBuilding(Location):
     def __init__(self, ai_settings, screen, index, pos_x, pos_y, msg, mini_game_id=None):
         # 继承父类的构造方法
         super().__init__(ai_settings, screen, index, pos_x, pos_y, msg, mini_game_id)
-    
+        self.mini_game_id=0
+
     def trigger_event(self, player):
         """触发事件"""
         # 随机事件的编号
         if self.mini_game_id:
             return "TRIGGER_MINI_GAME"
+        elif self.isShop:
+            return "TRIGGER_SHOP"
         index = 4
         # 随机传送到一个新的位置
         player.pos = random.randint(0, self.ai_settings.location_cnt)
@@ -140,12 +153,15 @@ class StudyHall(Location):
     def __init__(self, ai_settings, screen, index, pos_x, pos_y, msg, mini_game_id=None):
         # 继承父类的构造方法
         super().__init__(ai_settings, screen, index, pos_x, pos_y, msg, mini_game_id)
-    
+        self.mini_game_id=0
+
     def trigger_event(self, player):
         """触发事件"""
         # 随机事件的编号
         if self.mini_game_id:
             return "TRIGGER_MINI_GAME"
+        elif self.isShop:
+            return "TRIGGER_SHOP"
         index = 5
         # 随机传送到一个新的位置
         player.pos = random.randint(0, self.ai_settings.location_cnt)
@@ -156,12 +172,16 @@ class Gate(Location):
     def __init__(self, ai_settings, screen, index, pos_x, pos_y, msg, mini_game_id=None):
         # 继承父类的构造方法
         super().__init__(ai_settings, screen, index, pos_x, pos_y, msg, mini_game_id)
-    
+        self.mini_game_id=0
+        self.isShop = True
+
     def trigger_event(self, player):
         """触发事件"""
         # 随机事件的编号
         if self.mini_game_id:
             return "TRIGGER_MINI_GAME"
+        elif self.isShop:
+            return "TRIGGER_SHOP"
         index = 6
         # 随机传送到一个新的位置
         player.pos = random.randint(0, self.ai_settings.location_cnt)
@@ -172,12 +192,15 @@ class TechnologyBuilding(Location):
     def __init__(self, ai_settings, screen, index, pos_x, pos_y, msg, mini_game_id=None):
         # 继承父类的构造方法
         super().__init__(ai_settings, screen, index, pos_x, pos_y, msg, mini_game_id)
-    
+        self.mini_game_id=0
+
     def trigger_event(self, player):
         """触发事件"""
         # 随机事件的编号
         if self.mini_game_id:
             return "TRIGGER_MINI_GAME"
+        elif self.isShop:
+            return "TRIGGER_SHOP"
         index = 7
         # 随机传送到一个新的位置
         player.pos = random.randint(0, self.ai_settings.location_cnt)
@@ -188,12 +211,15 @@ class ArtMuseum(Location):
     def __init__(self, ai_settings, screen, index, pos_x, pos_y, msg, mini_game_id=None):
         # 继承父类的构造方法
         super().__init__(ai_settings, screen, index, pos_x, pos_y, msg, mini_game_id)
-    
+        self.mini_game_id=3
+
     def trigger_event(self, player):
         """触发事件"""
         # 随机事件的编号
         if self.mini_game_id:
             return "TRIGGER_MINI_GAME"
+        elif self.isShop:
+            return "TRIGGER_SHOP"
         index = 8
         # 随机传送到一个新的位置
         player.pos = random.randint(0, self.ai_settings.location_cnt)
@@ -204,12 +230,15 @@ class OfficePlace(Location):
     def __init__(self, ai_settings, screen, index, pos_x, pos_y, msg, mini_game_id=None):
         # 继承父类的构造方法
         super().__init__(ai_settings, screen, index, pos_x, pos_y, msg, mini_game_id)
-    
+        self.mini_game_id=4
+
     def trigger_event(self, player):
         """触发事件"""
         # 随机事件的编号
         if self.mini_game_id:
             return "TRIGGER_MINI_GAME"
+        elif self.isShop:
+            return "TRIGGER_SHOP"
         index = 9
         # 随机传送到一个新的位置
         player.pos = random.randint(0, self.ai_settings.location_cnt)

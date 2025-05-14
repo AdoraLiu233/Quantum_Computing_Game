@@ -15,6 +15,8 @@ class Dice():
         self.messageboard = messageboard
         # 存储骰子每个面的图像
         self.dice_side = []
+        #显示骰子
+        self.show_dice = True
         # 导入骰子的图片
         for i in range(1, 7):
             file_name_str = "dice" + str(i)
@@ -34,14 +36,20 @@ class Dice():
         """掷骰子"""
         #print("rolling dice...")
         # 随机骰子的值并制造出骰子随机的效果
+        final_index=0
+        
         for i in range(1, 18):
             index = random.randint(0, 5)
             self.cur_dice = self.dice_side[index]
             self.draw_dice(self.cur_dice)
             pygame.display.update()
             pygame.time.wait(100)
+            final_index = index
         # 骰子最后停下时的值
-        result = random.randint(0, 5)
+        # result = random.randint(0, 5)
+        self.cur_dice=self.dice_side[final_index]
+        self.draw_dice(self.cur_dice)
+        result = final_index
         self.cur_dice = self.dice_side[result]
         return result + 1
         

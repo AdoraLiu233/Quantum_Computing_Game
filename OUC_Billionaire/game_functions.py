@@ -76,6 +76,10 @@ def update_screen(ai_settings, screen, gs, play_button, locations,
             # text_rect = text.get_rect(center=screen.get_rect().center)
             # screen.blit(text, text_rect)
             pass # 假设小游戏会自己刷新整个屏幕
+        elif gs.game_state == ai_settings.SHOP:
+            # 绘制商店界面
+            screen.blit(ai_settings.shop_image, (0, 0))
+            # messageboard.draw_messageboard(gs, event_imgs, pq)
         else:
             # 绘制地图等主游戏元素
             screen.blit(ai_settings.map, (0, 0))
@@ -84,8 +88,8 @@ def update_screen(ai_settings, screen, gs, play_button, locations,
             pygame.draw.lines(screen, ai_settings.line_color, True, location_points, 3)
             pq.reverse_draw() # 绘制玩家
             messageboard.draw_messageboard(gs, event_imgs, pq) # 绘制信息板 (event_imgs可能用不到了，看gs.cur_event_imgs)
-            if gs.game_state == ai_settings.ROLL_DICE : # 只在掷骰子阶段画骰子
-                dice.draw_dice(dice.cur_dice)
+            # if gs.game_state == ai_settings.ROLL_DICE : # 只在掷骰子阶段画骰子
+            dice.draw_dice(dice.cur_dice)
     else: # 游戏未激活
         screen.blit(ai_settings.bg_image, (0, 0))
         play_button.draw_button()
@@ -138,8 +142,11 @@ def check_click_events(ai_settings, gs, play_button, locations, events_dict,
     if gs.game_state == ai_settings.ROLL_DICE:
         if dice.rect.collidepoint(mouse_x, mouse_y):
             step = dice.roll_dice()
+            # print(f"Player num:{}")
+            print(f"Player {pq.cur_player.player_name} rolled a {step}.")
             pq.cur_player.move(step)
             current_loc = locations[pq.cur_player.pos]
+            print(f"Player {pq.cur_player.player_name} moved to {current_loc.name}.")
             gs.cur_event_index = current_loc.trigger_event(pq.cur_player) # cur_event_index 现在可以是字符串
 
             gs.cur_event_imgs = None # 重置事件图片
@@ -150,6 +157,9 @@ def check_click_events(ai_settings, gs, play_button, locations, events_dict,
                 gs.game_state = ai_settings.MINI_GAME_STARTING # 进入小游戏准备阶段
                 # 此处可以给messageboard发消息，例如 "即将开始小游戏：xxx"
                 # print(f"Player {pq.cur_player.player_name} landed on a minigame: {gs.current_mini_game_id}")
+            elif gs.cur_event_index == "TRIGGER_SHOP":
+                print("-------------------------enter shop-------------------------")
+                gs.game_state = ai_settings.SHOP
             elif isinstance(gs.cur_event_index, int): # 是普通事件索引
                 if 0 <= gs.cur_event_index < len(events_dict) and 0 <= gs.cur_event_index < len(events_imgs):
                     gs.cur_event_imgs = events_imgs[gs.cur_event_index]
@@ -213,6 +223,12 @@ def check_click_events(ai_settings, gs, play_button, locations, events_dict,
             gs.cur_event_imgs = None
             pq.next_round()
             gs.game_state = ai_settings.ROLL_DICE
+    # 处理商店逻辑
+    elif gs.game_state == ai_settings.SHOP:
+        # 处理商店点击事件
+        if messageboard.shop_button_rect.collidepoint(mouse_x, mouse_y):
+            gs.game_state = ai_settings.ROLL_DICE # 返回掷骰子状态
+            # 这里可以添加商店逻辑，例如购买物品等
 
     elif gs.game_state == ai_settings.END_ROUND:
         if messageboard.button_rect.collidepoint(mouse_x, mouse_y):
