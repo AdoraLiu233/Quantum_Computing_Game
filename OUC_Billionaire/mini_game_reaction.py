@@ -135,7 +135,7 @@ def play(screen, ai_settings, current_player):
     pygame.time.wait(2000) # Show result for 2 seconds
 
     return {
-        "message": f"反应测试: {final_message_str} (金钱 {reward:+.0f})", # Add sign to reward
+        "message": f"反应测试: {final_message_str} (积分 {reward:+.0f})", # Add sign to reward
         "effect": reward
     }
 

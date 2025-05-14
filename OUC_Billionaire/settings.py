@@ -11,8 +11,8 @@ class Settings():
     """初始化游戏设置"""
     def __init__(self):
         # 设置屏幕的大小和颜色
-        self.screen_width = 1000
-        self.screen_height = 1100  #660
+        self.screen_width = 1200
+        self.screen_height = 1000  #660
         self.bg_color = (230, 230, 230)
         
         # 设置游戏统计信息
