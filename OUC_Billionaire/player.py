@@ -1,10 +1,4 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Sun Jun  9 23:17:52 2019
-
-@author: Sherlock Holmes
-"""
-
 import pygame
 
 class Player():
@@ -38,9 +32,9 @@ class Player():
     def draw_player(self):
         """绘制玩家的位置"""
         self.rect = self.image.get_rect()
-        # if self.pos >= len(self.locations):
-        #     self.pos -= len(self.locations)
-        # print(f"Player {self.player_name}'s pos: ", self.pos)
+
+        self.pos = self.pos % self.ai_settings.location_cnt
+
         self.rect.center = (self.locations[self.pos].x, self.locations[self.pos].y)
         self.screen.blit(self.image, self.rect)
         

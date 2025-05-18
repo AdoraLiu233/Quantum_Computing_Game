@@ -91,8 +91,7 @@ class Messageboard():
             self.player_msg_rects[i][0].top = (
                 self.player_msg_rects[i - 1][1].bottom + 5)
             self.player_msg_rects[i][0].left = self.box_2.left + 10
-            self.player_msg_rects[i][1].top = (self.player_msg_rects[i][0].bottom
-                                            + 5)
+            self.player_msg_rects[i][1].top = (self.player_msg_rects[i][0].bottom + 5)
             self.player_msg_rects[i][1].left = self.box_2.left + 10
     
     def update_event_message(self, gs, player):
@@ -128,7 +127,6 @@ class Messageboard():
         elif gs.game_state == self.ai_settings.MINI_GAME_ACTIVE:
             # 这个状态下，信息板可以显示 "小游戏进行中..."
             # game_name = self.ai_settings.minigame_configs.get(gs.current_mini_game_id, {}).get("name", gs.current_mini_game_id)
-            # active_msg_str = f"小游戏: {game_name} 进行中..."
             active_msg_str = f"小游戏: {gs.current_mini_game_id} 进行中..."
             active_img = self.font.render(active_msg_str, True, self.text_color_2)
             self.event_msg.append(active_img)
