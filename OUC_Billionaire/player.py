@@ -82,6 +82,13 @@ class Player():
         }
         return info
     
+    def use_item(self, item_index, target_player=None, **kwargs):
+        """使用道具的增强方法，支持额外参数"""
+        if 0 <= item_index < len(self.items):
+            item = self.items.pop(item_index)
+            return item.use(self, target_player, **kwargs)
+        return "无效的道具索引"
+    
 class Qubit:
     """|0⟩,|1⟩为基底"""
     def __init__(self, alpha=None, beta=None):
