@@ -1,10 +1,4 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Sun Jun  9 23:35:15 2019
-
-@author: Sherlock Holmes
-"""
-
 import pygame
 
 class Settings():
@@ -36,7 +30,7 @@ class Settings():
         # 设置开始游戏按钮
         self.play_button = pygame.image.load("images/play_button.png")
         
-        # 设置海大地图
+        # 设置清华地图
         self.map = pygame.image.load("images/map.png")
 
         #设置商店图片

@@ -76,8 +76,6 @@ def run_game():
             gf.update_screen(ai_settings, screen, gs, play_button, locations,
                              location_points, event_images, # events_dict 不需要了
                              messageboard, dice, player_que)
-        # 如果小游戏是阻塞的，它自己会 flip()。如果是非阻塞的，你可能需要在这里 flip()。
-        # 当前的设计 run_specific_mini_game 是阻塞的。
 
         game_clock.tick(30) # 例如，每秒30帧
 
