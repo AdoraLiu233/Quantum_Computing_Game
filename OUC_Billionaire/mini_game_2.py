@@ -90,7 +90,7 @@ while running:
     )
     
     # 绘制终点（红色，但玩家不可见）
-    if game_status != "Playing":
+    if game_status == "Playing":
         pygame.draw.rect(
             screen, RED,
             (target_pos[1] * CELL_SIZE, target_pos[0] * CELL_SIZE, CELL_SIZE, CELL_SIZE)
