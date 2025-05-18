@@ -40,6 +40,7 @@ class Player():
         self.rect = self.image.get_rect()
         # if self.pos >= len(self.locations):
         #     self.pos -= len(self.locations)
+        # print(f"Player {self.player_name}'s pos: ", self.pos)
         self.rect.center = (self.locations[self.pos].x, self.locations[self.pos].y)
         self.screen.blit(self.image, self.rect)
         

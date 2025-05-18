@@ -82,10 +82,16 @@ def update_screen(ai_settings, screen, gs, play_button, locations,
             # messageboard.draw_messageboard(gs, event_imgs, pq)
         else:
             # 绘制地图等主游戏元素
+            
             screen.blit(ai_settings.map, (0, 0))
             for location in locations:
                 location.draw_location()
-            pygame.draw.lines(screen, ai_settings.line_color, True, location_points, 3)
+            # pygame.draw.lines(screen, ai_settings.line_color, True, location_points, 3)
+            for i in range(len(location_points)):
+                start = location_points[i]
+                end = location_points[(i + 1) % len(location_points)]  # 闭环
+                draw_dashed_arrow(screen, (0, 0, 0), start, end)
+            print(f"Player {pq.cur_player.player_name}'s pos: ", pq.cur_player.pos)
             pq.reverse_draw() # 绘制玩家
             messageboard.draw_messageboard(gs, event_imgs, pq) # 绘制信息板 (event_imgs可能用不到了，看gs.cur_event_imgs)
             # if gs.game_state == ai_settings.ROLL_DICE : # 只在掷骰子阶段画骰子
@@ -144,6 +150,7 @@ def check_click_events(ai_settings, gs, play_button, locations, events_dict,
             step = dice.roll_dice()
             # print(f"Player num:{}")
             print(f"Player {pq.cur_player.player_name} rolled a {step}.")
+            print(f"Player {pq.cur_player.player_name} is at {pq.cur_player.pos}.")
             pq.cur_player.move(step)
             current_loc = locations[pq.cur_player.pos]
             print(f"Player {pq.cur_player.player_name} moved to {current_loc.name}.")
