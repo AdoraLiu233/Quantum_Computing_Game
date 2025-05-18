@@ -35,4 +35,5 @@ class PlayerQueue():
     def reverse_draw(self):
         """逆序绘制队列中的玩家（图片位置）"""
         for index in range(self.size - 1, -1, -1):
+            # print(f"Player {self.queue[index].player_name}'s pos: ", self.queue[index].pos)
             self.queue[index].draw_player()
