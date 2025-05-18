@@ -47,9 +47,7 @@ class Dice():
             final_index = index
         # 骰子最后停下时的值
         # result = random.randint(0, 5)
-        self.cur_dice=self.dice_side[final_index]
+        self.cur_dice = self.dice_side[final_index]
         self.draw_dice(self.cur_dice)
-        result = final_index
-        self.cur_dice = self.dice_side[result]
-        return result + 1
+        return final_index + 1
         

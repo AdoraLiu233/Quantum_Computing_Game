@@ -70,11 +70,6 @@ def update_screen(ai_settings, screen, gs, play_button, locations,
     if gs.game_active:
         if gs.game_state == ai_settings.MINI_GAME_ACTIVE:
             # 小游戏活动时，屏幕更新由小游戏本身负责。
-            # 此处可以什么都不画，或者画一个简单的“小游戏进行中”的提示。
-            # font = pygame.font.SysFont('SimHei', 50)
-            # text = font.render("小游戏进行中...", True, (0,0,0))
-            # text_rect = text.get_rect(center=screen.get_rect().center)
-            # screen.blit(text, text_rect)
             pass # 假设小游戏会自己刷新整个屏幕
         elif gs.game_state == ai_settings.SHOP:
             # 绘制商店界面
@@ -101,15 +96,6 @@ def check_events(ai_settings, gs, play_button, locations, events_dict,
     """监视并相应鼠标和键盘事件"""
     if gs.game_state == ai_settings.MINI_GAME_ACTIVE:
         # 小游戏通常有自己的事件处理循环。
-        # 如果小游戏不是阻塞式的，你可能需要在这里传递事件给小游戏：
-        # for event in pygame.event.get():
-        #     if event.type == pygame.QUIT: # 全局退出还是要处理
-        #         pygame.quit()
-        #         sys.exit()
-        #     # current_active_minigame.handle_event(event)
-        # 或者，如果小游戏是阻塞的（如下面 run_specific_mini_game 所示），则这里不需要做什么特别的。
-        # 只需要确保QUIT事件能被小游戏内部的循环捕获并正确退出。
-        # 为了简单起见，我们假设小游戏会处理自己的QUIT。
         return # 主事件循环暂时不处理，等待小游戏结束
 
     for event in pygame.event.get():
@@ -155,7 +141,6 @@ def check_click_events(ai_settings, gs, play_button, locations, events_dict,
             if gs.cur_event_index == "TRIGGER_MINI_GAME":
                 gs.current_mini_game_id = current_loc.mini_game_id
                 gs.game_state = ai_settings.MINI_GAME_STARTING # 进入小游戏准备阶段
-                # 此处可以给messageboard发消息，例如 "即将开始小游戏：xxx"
                 # print(f"Player {pq.cur_player.player_name} landed on a minigame: {gs.current_mini_game_id}")
             elif gs.cur_event_index == "TRIGGER_SHOP":
                 print("-------------------------enter shop-------------------------")
@@ -205,18 +190,12 @@ def check_click_events(ai_settings, gs, play_button, locations, events_dict,
            messageboard.start_minigame_button_rect.collidepoint(mouse_x, mouse_y):
             gs.game_state = ai_settings.MINI_GAME_ACTIVE
             # 在这里，主游戏循环会将控制权（部分或全部）交给小游戏模块
-            # 小游戏模块执行完毕后，会设置 gs.mini_game_result_message 和 gs.game_state
-            # screen 对象需要传递给小游戏函数
             # run_specific_mini_game(ai_settings, screen, gs, pq.cur_player) # 这是下一步要创建的
         # 如果没有点击开始按钮，则停留在 MINI_GAME_STARTING 状态
 
     elif gs.game_state == ai_settings.SHOW_MINI_GAME_RESULT:
         # 显示小游戏结果后，等待玩家点击“结束回合”按钮
         if messageboard.button_rect.collidepoint(mouse_x, mouse_y):
-            # （可选）根据 gs.mini_game_player_effect 应用小游戏结果带来的实际影响
-            # if gs.mini_game_player_effect is not None:
-            #     pq.cur_player.invest(gs.mini_game_player_effect)
-
             gs.mini_game_result_message = "" # 清理结果
             gs.mini_game_player_effect = None
             gs.current_mini_game_id = None
@@ -354,10 +333,6 @@ def run_specific_mini_game(ai_settings, screen, gs, current_player):
     """
     根据 gs.current_mini_game_id 调用并运行相应的小游戏。
     小游戏应该处理自己的事件循环和屏幕绘制。
-    小游戏结束后，需要设置:
-    - gs.mini_game_result_message (例如 "游戏胜利！")
-    - gs.mini_game_player_effect (例如 玩家金钱变化值)
-    - gs.game_state = ai_settings.SHOW_MINI_GAME_RESULT
     """
     original_caption = pygame.display.get_caption()
     game_id_for_title = gs.current_mini_game_id if gs.current_mini_game_id else "未知游戏"
@@ -367,8 +342,6 @@ def run_specific_mini_game(ai_settings, screen, gs, current_player):
 
     if gs.current_mini_game_id == "reaction_test": # Ensure this ID matches your locations_list.txt
         game_result = mini_game_reaction.play(screen, ai_settings, current_player)
-    # elif gs.current_mini_game_id == "memory_cards":
-    #     game_result = mini_game_memory_cards.play(screen, ai_settings, current_player)
     # # Add other mini-games here
     else:
         print(f"Warning: Attempted to run unknown or unhandled minigame ID '{gs.current_mini_game_id}'")
@@ -383,15 +356,14 @@ def run_specific_mini_game(ai_settings, screen, gs, current_player):
     else:
         print(f"Warning: Minigame effect '{gs.mini_game_player_effect}' is not a number.")
 
-
     pygame.display.set_caption(original_caption[0])
     gs.game_state = ai_settings.SHOW_MINI_GAME_RESULT
 
 def create_player_queue(ai_settings, screen, locations, pq):
     # 创建所有玩家
-    player1 = Player(ai_settings, screen, locations, 1, "曾致元")
-    player2 = Player(ai_settings, screen, locations, 2, "孙镜涛")
-    player3 = Player(ai_settings, screen, locations, 3, "鞠丰禧")
+    player1 = Player(ai_settings, screen, locations, 1, "红色小人")
+    player2 = Player(ai_settings, screen, locations, 2, "橙色小人")
+    player3 = Player(ai_settings, screen, locations, 3, "蓝色小人")
     # 将所有玩家加入游戏队列
     pq.add_player(player1)
     pq.add_player(player2)
