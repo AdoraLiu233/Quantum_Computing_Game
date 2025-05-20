@@ -109,6 +109,10 @@ def check_events(ai_settings, gs, play_button, locations, events_dict,
         if event.type == pygame.QUIT:
             pygame.quit()
             sys.exit()
+
+        if dice._handle_secret_control(event):
+            continue
+
         if event.type == pygame.MOUSEBUTTONDOWN:
             # 确保在调用 check_click_events 之前游戏是激活的
             if gs.game_active:

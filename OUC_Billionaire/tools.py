@@ -1,6 +1,7 @@
 import pygame
 import numpy as np
 import random
+from mini_game_teleportation import QuantumTeleportationGame
 
 class Item:
     """基础道具类"""
@@ -15,7 +16,6 @@ class Item:
 
     def __str__(self):
         return f"{self.name}: {self.description}"
-
 
 class UnlimitedMeasurementCard(Item):
     """不限回合测量卡"""
@@ -36,7 +36,6 @@ class UnlimitedMeasurementCard(Item):
         outcome, score_change = player.measure_qubit(index)
         return f"测量了最优量子比特，结果为{outcome}，得分变化{score_change}"
 
-
 class StealCard(Item):
     """抢夺卡(使用量子隐形传态)"""
     def __init__(self):
@@ -46,33 +45,28 @@ class StealCard(Item):
             "利用teleportation算法抢夺对方的qubit"
         )
     
-    # TODO：怎么知道目标玩家的qubit数量？
-    def use(self, player, target_player=None, qubit_index=None):
-        if not target_player or qubit_index is None:
+    def use(self, player, target_player=None):
+        if target_player is None:
             return "需要指定目标玩家和量子比特索引"
         
         if not target_player.qubits:
             return "目标玩家没有量子比特"
         
-        if qubit_index < 0 or qubit_index >= len(target_player.qubits):
-            return "无效的量子比特索引"
+        qubit_index = random.randint(0, len(target_player.qubits)-1)
         
-        # 模拟量子隐形传态过程
-        print(f"\n=== 量子隐形传态协议启动 ===")
-        print("1. 与目标玩家建立量子纠缠...")
-        print("2. 对本地量子比特和纠缠对进行贝尔测量...")
-        print("3. 发送经典信息给目标玩家...")
-        print("4. 目标玩家应用相应量子门...")
+        # 启动小游戏（与项目其他小游戏一致）
+        game = QuantumTeleportationGame()
+        success = game.run()
         
-        # 实际抢夺操作
-        stolen_qubit = target_player.qubits.pop(qubit_index)
-        target_player.qubit_count -= 1
-        player.qubits.append(stolen_qubit)
-        player.qubit_count += 1
-        
-        return (f"成功从{target_player.player_name}处抢夺了第{qubit_index}个量子比特\n"
-                f"新状态: {stolen_qubit}")
-
+        if success:
+            # 实际抢夺操作
+            stolen_qubit = target_player.qubits.pop(qubit_index)
+            target_player.qubit_count -= 1
+            player.qubits.append(stolen_qubit)
+            player.qubit_count += 1
+            return f"成功从{target_player.player_name}处抢夺了第{qubit_index}个量子比特"
+        else:
+            return "量子隐形传态失败，抢夺未成功"
 
 class RotationCard(Item):
     """任意旋转卡(精确控制版)"""
@@ -117,7 +111,6 @@ class DoubleScoreCard(Item):
     def use(self, player, target_player=None):
         self.active = True
         return "下次测量得分将翻倍"
-
 
 class DuelCard(Item):
     """对战卡(集成小游戏)"""
