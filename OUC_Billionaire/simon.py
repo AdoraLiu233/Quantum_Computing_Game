@@ -1,0 +1,837 @@
+import pygame
+import sys
+import random
+import math
+from typing import Dict
+
+# 初始化pygame
+pygame.init()
+
+# 常量定义
+WINDOW_WIDTH = 1200
+WINDOW_HEIGHT = 800
+FPS = 60
+
+# 颜色定义
+BLACK = (0, 0, 0)
+WHITE = (255, 255, 255)
+GOLD = (255, 215, 0)
+BLUE = (70, 130, 180)
+PURPLE = (147, 112, 219)
+GREEN = (60, 179, 113)
+RED = (220, 20, 60)
+ORANGE = (255, 165, 0)
+GRAY = (128, 128, 128)
+LIGHT_GRAY = (211, 211, 211)
+DARK_GRAY = (64, 64, 64)
+NAVY = (25, 25, 112)
+
+## 再检查一下H的实现逻辑
+## 实际中是可能检测出y = 0的吗？
+## 跟踪一下Simon代码执行流程以改进输出
+## 确认一下不同量子数应用测量数等于几比较好：不能让玩家有机会枚举了（  但是也要给oracle的随机留够机会
+
+# 字体初始化
+try:
+    font_title = pygame.font.Font('fonts/Noto_Sans_SC.ttf', 36)
+    font_large = pygame.font.Font('fonts/Noto_Sans_SC.ttf', 24)
+    font_medium = pygame.font.Font('fonts/Noto_Sans_SC.ttf', 20)
+    font_small = pygame.font.Font('fonts/Noto_Sans_SC.ttf', 16)
+except:
+    font_title = pygame.font.Font(None, 36)
+    font_large = pygame.font.Font(None, 24)
+    font_medium = pygame.font.Font(None, 20)
+    font_small = pygame.font.Font(None, 16)
+
+class QuantumState:
+    """简化的量子态类"""
+    def __init__(self, n_qubits: int):
+        self.n_qubits = n_qubits
+        self.register_a = {0: 1.0}  # |000...>
+        self.register_b = {0: 1.0}
+        self.is_entangled = False
+        self.entangled_state = {}
+        self.had_final_h = False
+        
+    def set_input(self, x: int):
+        """设置输入状态"""
+        self.register_a = {x: 1.0}
+        self.register_b = {0: 1.0}
+        self.is_entangled = False
+        
+    def apply_hadamard_a(self):
+        """对寄存器A应用H变换"""
+        new_register = {}
+        norm_factor = 1.0 / math.sqrt(2 ** self.n_qubits)
+
+        # 对每个可能的输出状态y计算振幅
+        for y in range(2 ** self.n_qubits):
+            total_amplitude = 0
+            
+            # 对寄存器A中的每个状态x计算贡献
+            for x, amplitude in self.register_a.items():
+                # 计算 (-1)^(x·y) 相位因子
+                phase = (-1) ** (bin(x & y).count('1'))
+                total_amplitude += amplitude * phase * norm_factor
+            
+            # 只保留非零振幅的状态
+            if abs(total_amplitude) > 1e-10:
+                new_register[y] = total_amplitude
+    
+        self.register_a = new_register
+        self.had_final_h = True
+        ## 叠加态输入应该在游戏里有更多的说明，要不然看起来莫名其妙的
+        
+    def apply_oracle(self, oracle_func: Dict[int, int]):
+        """应用Oracle"""
+        new_state = {}
+        for x, amp_a in self.register_a.items():
+            for y, amp_b in self.register_b.items():
+                fx = oracle_func.get(x, 0)
+                new_y = y ^ fx
+                key = (x, new_y)
+                new_state[key] = new_state.get(key, 0) + amp_a * amp_b
+        
+        self.entangled_state = new_state
+        self.is_entangled = True
+        
+    def measure_b(self):
+        """测量寄存器B"""
+        if not self.is_entangled:
+            return 0, self.register_a
+            
+        # 计算B的概率分布
+        b_probs = {}
+        for (x, b), amplitude in self.entangled_state.items():
+            b_probs[b] = b_probs.get(b, 0) + abs(amplitude) ** 2
+            
+        # 随机选择测量结果
+        b_values = list(b_probs.keys())
+        probabilities = list(b_probs.values())
+        measured_b = random.choices(b_values, weights=probabilities)[0]
+        
+        # 坍缩寄存器A
+        collapsed_a = {}
+        total_prob = 0
+        for (x, b), amplitude in self.entangled_state.items():
+            if b == measured_b:
+                collapsed_a[x] = amplitude
+                total_prob += abs(amplitude) ** 2
+                
+        # 归一化
+        if total_prob > 0:
+            norm_factor = 1.0 / math.sqrt(total_prob)
+            for x in collapsed_a:
+                collapsed_a[x] *= norm_factor
+        
+        self.register_a = collapsed_a
+        self.is_entangled = False
+        return measured_b, collapsed_a
+        
+    def measure_a(self):
+        """测量寄存器A"""
+        if not self.register_a:
+            return 0
+            
+        probs = {x: abs(amp)**2 for x, amp in self.register_a.items()}
+        x_values = list(probs.keys())
+        probabilities = list(probs.values())
+        return random.choices(x_values, weights=probabilities)[0]
+
+def gf2_rank(matrix):
+    """计算GF(2)矩阵的秩"""
+    if not matrix:
+        return 0
+    
+    rows, cols = len(matrix), len(matrix[0])
+    rank = 0
+    work_matrix = [row[:] for row in matrix]
+    
+    for col in range(cols):
+        # 找主元
+        pivot_row = -1
+        for row in range(rank, rows):
+            if work_matrix[row][col] == 1:
+                pivot_row = row
+                break
+        
+        if pivot_row == -1:
+            continue
+        
+        # 交换行
+        if pivot_row != rank:
+            work_matrix[rank], work_matrix[pivot_row] = work_matrix[pivot_row], work_matrix[rank]
+        
+        # 消元
+        for row in range(rows):
+            if row != rank and work_matrix[row][col] == 1:
+                for c in range(cols):
+                    work_matrix[row][c] ^= work_matrix[rank][c]
+        
+        rank += 1
+    
+    return rank
+
+def solve_simon(vectors, n):
+    """求解Simon问题"""
+    if len(vectors) < n - 1:
+        return None
+    
+    unique_vectors = list(set(vectors))
+    matrix = []
+    for v in unique_vectors:
+        row = [(v >> (n-1-i)) & 1 for i in range(n)]
+        matrix.append(row)
+        
+    rank = gf2_rank(matrix)
+    if rank < n - 1:
+        return None
+    
+    # 枚举所有可能解
+    for s in range(1, 2**n):
+        valid = True
+        for v in unique_vectors:
+            if bin(s & v).count('1') % 2 != 0:
+                valid = False
+                break
+        if valid:
+            return s
+    
+    return None
+
+def draw_panel(screen, x, y, width, height, title=""):
+    """绘制面板"""
+    rect = pygame.Rect(x, y, width, height)
+    pygame.draw.rect(screen, WHITE, rect)
+    pygame.draw.rect(screen, NAVY, rect, 2)
+    
+    if title:
+        title_surface = font_medium.render(title, True, NAVY)
+        screen.blit(title_surface, (x + 10, y + 5))
+
+def draw_button(screen, x, y, width, height, text, color=BLUE, enabled=True):
+    """绘制按钮"""
+    rect = pygame.Rect(x, y, width, height)
+    
+    btn_color = color if enabled else LIGHT_GRAY
+    pygame.draw.rect(screen, btn_color, rect)
+    pygame.draw.rect(screen, DARK_GRAY, rect, 1)
+    
+    text_color = WHITE if enabled else DARK_GRAY
+    text_surface = font_small.render(text, True, text_color)
+    text_rect = text_surface.get_rect(center=rect.center)
+    screen.blit(text_surface, text_rect)
+    
+    return rect
+
+class SimonGame:
+    """简化的Simon算法游戏"""
+    def __init__(self):
+        self.screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
+        pygame.display.set_caption("Simon算法游戏")
+        self.clock = pygame.time.Clock()
+        self.running = True
+        
+        # 游戏参数
+        self.n = 3
+        self.s = 0
+        self.oracle_func = {}
+        
+        # 游戏状态
+        self.quantum_state = QuantumState(self.n)
+        self.orthogonal_vectors = []
+        self.score = 1000
+        self.oracle_queries = 0
+        self.max_queries = self.n * 2
+        self.game_won = False
+        
+        # 用户输入
+        self.custom_input = ""
+        self.input_active = False
+        
+        # 答案输入
+        self.answer_input = ""
+        self.answer_input_active = False
+        
+        # 消息
+        self.messages = []
+        self.max_messages = 15
+        
+        # 按钮
+        self.button_rects = {}
+        
+        # 提示是否已购买
+        self.hint_purchased = False
+        self.oracle_shown = False
+        
+        self.init_new_game()
+        
+    def init_new_game(self):
+        """初始化新游戏"""
+        self.s = random.randint(1, (1 << self.n) - 1)
+        print(f"Debug: 隐藏的s = {bin(self.s)[2:].zfill(self.n)}")
+        
+        # 生成Simon Oracle
+        self.oracle_func = {}
+        processed = set()
+        available_outputs = list(range(1 << self.n))
+        random.shuffle(available_outputs)
+        
+        for x in range(1 << self.n):
+            if x in processed:
+                continue
+            x_xor_s = x ^ self.s
+            if available_outputs:
+                y = available_outputs.pop()
+                self.oracle_func[x] = y
+                self.oracle_func[x_xor_s] = y
+                processed.add(x)
+                processed.add(x_xor_s)
+        
+        # 重置状态
+        self.quantum_state = QuantumState(self.n)
+        self.orthogonal_vectors = []
+        self.oracle_queries = 0
+        self.max_queries = self.n * 2
+        self.game_won = False
+        self.custom_input = ""
+        self.input_active = False
+        self.answer_input = ""
+        self.answer_input_active = False
+        
+        self.add_message(f"新游戏开始！n={self.n}", GREEN)
+        self.add_message("选择输入方式开始Simon算法", BLUE)
+        
+    def add_message(self, text, color=NAVY):
+        """添加消息"""
+        self.messages.append((text, color))
+        if len(self.messages) > self.max_messages:
+            self.messages = self.messages[-self.max_messages:]
+    
+    def use_superposition_input(self):
+        """使用叠加态输入"""
+        if self.score < 20:
+            self.add_message("积分不足！", RED)
+            return
+            
+        self.score -= 20
+        self.quantum_state = QuantumState(self.n)
+        self.quantum_state.apply_hadamard_a()
+        
+        binary_str = "0" * self.n
+        self.add_message(f"创建叠加态：|{binary_str}> -> 均匀叠加态，消耗20积分", GREEN)
+    
+    def use_custom_input(self, x):
+        """使用自定义输入"""
+        if self.score < 5:
+            self.add_message("积分不足！", RED)
+            return
+            
+        self.score -= 5
+        self.quantum_state = QuantumState(self.n)
+        self.quantum_state.set_input(x)
+        
+        x_str = bin(x)[2:].zfill(self.n)
+        self.add_message(f"设置输入：|{x_str}>，消耗5积分", GREEN)
+    
+    def query_oracle(self):
+        """查询Oracle"""
+        if self.oracle_queries >= self.max_queries:
+            self.add_message("Oracle查询次数已用完！", RED)
+            return
+            
+        cost = 25
+        if self.score < cost:
+            self.add_message("积分不足！", RED)
+            return
+            
+        self.score -= cost
+        self.oracle_queries += 1
+        
+        self.quantum_state.apply_oracle(self.oracle_func)
+        self.add_message(f"Oracle查询 #{self.oracle_queries}", GREEN)
+        self.add_message("应用：|x>|0> -> |x>|f(x)>，消耗25积分", BLUE)
+    
+    def measure_b(self):
+        """测量寄存器B"""
+        cost = 10
+        if self.score < cost:
+            self.add_message("积分不足！", RED)
+            return
+            
+        self.score -= cost
+        measured_b, collapsed_a = self.quantum_state.measure_b()
+        
+        b_str = bin(measured_b)[2:].zfill(self.n)
+        self.add_message(f"测量B结果：|{b_str}>，消耗10积分", GREEN)
+        
+    
+    def apply_final_h(self):
+        """应用最终H变换"""
+        cost = 15
+        if self.score < cost:
+            self.add_message("积分不足！", RED)
+            return
+            
+        self.score -= cost
+        self.quantum_state.apply_hadamard_a()
+        self.add_message("对A应用H变换，消耗15积分", GREEN)
+    
+    def measure_a(self):
+        """测量寄存器A - 使用正确的概率分布"""
+        cost = 10
+        if self.score < cost:
+            self.add_message("积分不足！", RED)
+            return
+            
+        self.score -= cost
+        
+        # 计算每个状态的概率（振幅的模平方）
+        probs = {}
+        total_prob = 0
+        for x, amplitude in self.quantum_state.register_a.items():
+            prob = abs(amplitude) ** 2
+            probs[x] = prob
+            total_prob += prob
+        
+        # 归一化概率
+        if total_prob > 0:
+            for x in probs:
+                probs[x] /= total_prob
+        
+        # 根据概率随机选择
+        if probs:
+            x_values = list(probs.keys())
+            probabilities = list(probs.values())
+            measured_y = random.choices(x_values, weights=probabilities)[0]
+        else:
+            measured_y = 0
+        
+        had_final_h = self.quantum_state.had_final_h
+        
+        y_str = bin(measured_y)[2:].zfill(self.n)
+        self.add_message(f"测量A：|{y_str}>", GREEN)
+        
+        # 验证正交性
+        dot_product = bin(self.s & measured_y).count('1') % 2
+        is_orthogonal = (dot_product == 0)
+        
+        self.add_message(f"s·y = {dot_product} (mod 2)", GREEN if is_orthogonal else RED)
+        
+        # 如果是正交且非零向量，加入向量集合
+        if is_orthogonal and measured_y != 0:
+            self.orthogonal_vectors.append(measured_y)
+        elif measured_y == 0:
+            self.add_message("测量结果为0，无信息量", GRAY)
+        
+        # 流程提示
+        if had_final_h and not is_orthogonal and not measured_y == 0:
+            self.add_message("经过完整Simon算法流程，但没有给出正交向量。可能是数值误差或实现问题。", GOLD)
+        
+        self.add_message("消耗10积分", ORANGE)
+        
+        # 重置量子态
+        self.quantum_state = QuantumState(self.n)
+
+    # 计算线性无关向量数量用于按钮启用判断
+    def get_independent_vector_count(self):
+        """获取线性无关向量数量"""
+        unique_vectors = list(set(self.orthogonal_vectors))
+        if not unique_vectors:
+            return 0
+        
+        matrix = []
+        for v in unique_vectors:
+            row = [(v >> (self.n-1-i)) & 1 for i in range(self.n)]
+            matrix.append(row)
+        
+        return gf2_rank(matrix)
+
+    def auto_solve(self):
+        """自动求解"""
+
+        # 检查线性无关性而不是简单的数量
+        unique_vectors = list(set(self.orthogonal_vectors))
+        if not unique_vectors:
+            self.add_message("没有有效向量！", RED)
+            return
+            
+        matrix = []
+        for v in unique_vectors:
+            row = [(v >> (self.n-1-i)) & 1 for i in range(self.n)]
+            matrix.append(row)
+        
+        rank = gf2_rank(matrix)
+        
+        if rank < self.n - 1:
+            self.add_message(f"需要{self.n-1}个线性无关向量！", RED)
+            self.add_message(f"当前有{rank}个线性无关向量", ORANGE)
+            return
+            
+        cost = 50
+        if self.score < cost:
+            self.add_message("积分不足！", RED)
+            return
+            
+        self.score -= cost
+        solved_s = solve_simon(self.orthogonal_vectors, self.n)
+        
+        self.end_game(solved_s)
+    
+    def manual_solve(self, guess_s):
+        """手动求解"""
+        self.end_game(guess_s)
+    
+    def end_game(self, solved_s):
+        """结束游戏"""
+        if solved_s == self.s:
+            self.game_won = True
+            s_str = bin(self.s)[2:].zfill(self.n)
+            bonus = (self.max_queries - self.oracle_queries) * 30
+            self.score += bonus + 100
+            
+            self.add_message("恭喜！找到隐藏字符串！", GOLD)
+            self.add_message(f"s = {s_str}", GREEN)
+            self.add_message(f"效率奖励：{bonus}积分", GOLD)
+        else:
+            s_str = bin(self.s)[2:].zfill(self.n)
+            guess_str = bin(solved_s)[2:].zfill(self.n) if solved_s else "无效"
+            self.add_message("答案错误！", RED)
+            self.add_message(f"你的答案：{guess_str}", RED)
+            self.add_message(f"正确答案：{s_str}", GREEN)
+    
+    def buy_hint(self):
+        """购买算法提示"""
+        if self.hint_purchased:
+            # 显示提示
+            self.add_message("Simon算法提示：", BLUE)
+            self.add_message("1.选择输入->2.Oracle查询->", GREEN)
+            self.add_message("3.测量后寄存器B->4.应用H->5.测量前寄存器A", GREEN)
+            self.add_message("叠加态输入可能一次获得多个正交向量", GREEN)
+            self.add_message("自定义输入更精确但需多次尝试", GREEN)
+            return
+            
+        cost = 80
+        if self.score < cost:
+            self.add_message("积分不足！需要80积分", RED)
+            return
+            
+        self.score -= cost
+        self.hint_purchased = True
+        
+        self.add_message("算法提示已购买！可重复查看", BLUE)
+        self.add_message("1.选择输入->2.Oracle查询->", GREEN)
+        self.add_message("3.测量后寄存器B->4.应用H->5.测量前寄存器A", GREEN)
+        self.add_message("叠加态输入可能一次获得多个正交向量", GREEN)
+        self.add_message("自定义输入更精确但需多次尝试", GREEN)
+    
+    def handle_events(self):
+        """处理事件"""
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                self.running = False
+            
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                mouse_x, mouse_y = event.pos
+                
+                for btn_name, rect in self.button_rects.items():
+                    if rect.collidepoint(mouse_x, mouse_y):
+                        self.handle_button_click(btn_name)
+                        
+            elif event.type == pygame.KEYDOWN:
+                if self.input_active:
+                    if event.key == pygame.K_RETURN:
+                        try:
+                            x_val = int(self.custom_input, 2) if self.custom_input else 0
+                            if 0 <= x_val < (1 << self.n):
+                                self.use_custom_input(x_val)
+                            else:
+                                self.add_message("输入超出范围！", RED)
+                        except ValueError:
+                            self.add_message("请输入有效的二进制数！", RED)
+                        self.custom_input = ""
+                        self.input_active = False
+                    elif event.key == pygame.K_BACKSPACE:
+                        self.custom_input = self.custom_input[:-1]
+                    elif event.unicode in '01' and len(self.custom_input) < self.n:
+                        self.custom_input += event.unicode
+                elif self.answer_input_active:
+                    if event.key == pygame.K_RETURN:
+                        try:
+                            s_val = int(self.answer_input, 2) if self.answer_input else 0
+                            if 0 <= s_val < (1 << self.n):
+                                self.manual_solve(s_val)
+                            else:
+                                self.add_message("输入超出范围！", RED)
+                        except ValueError:
+                            self.add_message("请输入有效的二进制数！", RED)
+                        self.answer_input = ""
+                        self.answer_input_active = False
+                    elif event.key == pygame.K_BACKSPACE:
+                        self.answer_input = self.answer_input[:-1]
+                    elif event.unicode in '01' and len(self.answer_input) < self.n:
+                        self.answer_input += event.unicode
+                elif event.key == pygame.K_r:
+                    self.init_new_game()
+    
+    def handle_button_click(self, btn_name):
+        """处理按钮点击"""
+        if btn_name.startswith("n") and btn_name[1:].isdigit():
+            new_n = int(btn_name[1:])
+            if 2 <= new_n <= 4:
+                self.n = new_n
+                self.init_new_game()
+        elif btn_name == "superposition":
+            self.use_superposition_input()
+        elif btn_name == "custom":
+            self.input_active = True
+            self.add_message(f"输入{self.n}位二进制数后按回车：", BLUE)
+        elif btn_name == "oracle":
+            self.query_oracle()
+        elif btn_name == "measure_b":
+            self.measure_b()
+        elif btn_name == "final_h":
+            self.apply_final_h()
+        elif btn_name == "measure_a":
+            self.measure_a()
+        elif btn_name == "auto_solve":
+            self.auto_solve()
+        elif btn_name == "manual_solve":
+            self.answer_input_active = True
+            self.add_message(f"输入{self.n}位二进制答案后按回车：", BLUE)
+        elif btn_name == "hint":
+            self.buy_hint()
+        elif btn_name == "reset":
+            self.init_new_game()
+    
+    def draw(self):
+        """绘制游戏界面"""
+        self.screen.fill((250, 250, 250))
+        
+        # 标题
+        title_surface = font_title.render("Simon算法游戏", True, NAVY)
+        title_rect = title_surface.get_rect(center=(WINDOW_WIDTH // 2, 25))
+        self.screen.blit(title_surface, title_rect)
+        
+        # 状态栏
+        status = f"积分:{self.score} | Oracle:{self.oracle_queries}/{self.max_queries}"
+        if self.game_won:
+            status += " | 胜利！"
+        status_surface = font_small.render(status, True, NAVY)
+        self.screen.blit(status_surface, (20, 50))
+        
+        # 难度选择
+        draw_panel(self.screen, 20, 80, 250, 60, "选择难度")
+        for i in range(2, 5):
+            color = BLUE if self.n == i else GRAY
+            self.button_rects[f"n{i}"] = draw_button(self.screen, 30 + (i-2)*70, 110, 60, 25, 
+                                                   f"n={i}", color, not self.game_won)
+        
+        # 输入选择
+        draw_panel(self.screen, 20, 160, 250, 160, "选择输入")
+        self.button_rects["superposition"] = draw_button(self.screen, 30, 190, 230, 30, 
+                                                       "叠加态输入 (20积分)", GREEN, 
+                                                       self.score >= 20 and not self.game_won)
+        self.button_rects["custom"] = draw_button(self.screen, 30, 225, 230, 30, 
+                                                "自定义输入 (5积分)", BLUE, 
+                                                self.score >= 5 and not self.game_won)
+        
+        # 显示输入状态
+        if self.input_active:
+            # 创建输入框背景
+            input_rect = pygame.Rect(30, 265, 230, 25)
+            pygame.draw.rect(self.screen, WHITE, input_rect)
+            pygame.draw.rect(self.screen, BLUE, input_rect, 2)
+            
+            # 显示输入内容
+            input_text = self.custom_input + "_" if len(self.custom_input) < self.n else self.custom_input
+            input_surface = font_medium.render(input_text, True, NAVY)
+            self.screen.blit(input_surface, (35, 270))
+            
+            # 显示提示
+            hint_text = f"请输入{self.n}位二进制数 (例: {'0'*(self.n-1)}1)"
+            hint_surface = font_small.render(hint_text, True, GRAY)
+            self.screen.blit(hint_surface, (30, 295))
+        
+        # Simon算法步骤 - 位置下移
+        draw_panel(self.screen, 20, 340, 250, 200, "Simon算法步骤")
+        
+        y_pos = 370
+        steps = [
+            ("oracle", "Oracle查询 (25积分)", GREEN),
+            ("measure_b", "测量后寄存器B (10积分)", PURPLE),
+            ("final_h", "对前寄存器使用H变换 (15积分)", ORANGE),
+            ("measure_a", "测量前寄存器A (10积分)", RED)
+        ]
+        
+        for btn_name, text, color in steps:
+            cost = {"oracle": 25, "measure_b": 10, "final_h": 15, "measure_a": 10}[btn_name]
+            enabled = (self.score >= cost and not self.game_won and 
+                      (btn_name != "oracle" or self.oracle_queries < self.max_queries))
+            self.button_rects[btn_name] = draw_button(self.screen, 30, y_pos, 230, 30, 
+                                                    text, color, enabled)
+            y_pos += 35
+        
+        # 求解工具 - 位置下移
+        draw_panel(self.screen, 20, 560, 250, 120, "求解工具")
+        independent_count = self.get_independent_vector_count()
+        self.button_rects["auto_solve"] = draw_button(self.screen, 30, 590, 110, 30, 
+                                           "自动求解 (50积分)", GOLD, 
+                                           self.score >= 50 and independent_count >= self.n-1 and not self.game_won)
+        self.button_rects["manual_solve"] = draw_button(self.screen, 150, 590, 110, 30, 
+                                               "手动输入答案", BLUE, not self.game_won)
+        
+        # 显示答案输入框
+        if self.answer_input_active:
+            answer_rect = pygame.Rect(30, 630, 230, 25)
+            pygame.draw.rect(self.screen, WHITE, answer_rect)
+            pygame.draw.rect(self.screen, BLUE, answer_rect, 2)
+            
+            answer_text = self.answer_input + "_" if len(self.answer_input) < self.n else self.answer_input
+            answer_surface = font_medium.render(answer_text, True, NAVY)
+            self.screen.blit(answer_surface, (35, 635))
+            
+            hint_text = f"输入{self.n}位二进制答案"
+            hint_surface = font_small.render(hint_text, True, GRAY)
+            self.screen.blit(hint_surface, (30, 660))
+        
+        self.button_rects["reset"] = draw_button(self.screen, 30, 690, 230, 25, 
+                                               "重新开始", GRAY, True)
+        
+        # 帮助工具 - 位置调整
+        draw_panel(self.screen, 20, 720, 250, 60, "帮助工具")
+        
+        hint_color = BLUE if self.hint_purchased else (BLUE if self.score >= 80 else RED)
+        hint_text = "查看提示" if self.hint_purchased else "算法提示 (80积分)"
+        self.button_rects["hint"] = draw_button(self.screen, 30, 745, 110, 25, 
+                                              hint_text, hint_color, 
+                                              self.hint_purchased or self.score >= 80)
+        
+        # 消息面板
+        draw_panel(self.screen, 290, 80, 400, 500, "操作日志")
+        
+        y_pos = 110
+        for message, color in self.messages:
+            if message:
+                text_surface = font_small.render(message, True, color)
+                self.screen.blit(text_surface, (310, y_pos))
+            y_pos += 18
+        
+        # 状态面板
+        draw_panel(self.screen, 710, 80, 470, 500, "游戏状态")
+        
+        status_lines = [
+            f"难度: n = {self.n}",
+            f"目标: 找到{self.n}位隐藏字符串s",
+            f"当前积分: {self.score}",
+            f"Oracle查询: {self.oracle_queries}/{self.max_queries}",
+            "",
+            "测量结果:"
+        ]
+        
+        for i, v in enumerate(self.orthogonal_vectors):
+            v_str = bin(v)[2:].zfill(self.n)
+            # 验证显示
+            dot_check = "√" if bin(self.s & v).count('1') % 2 == 0 else "×"
+            status_lines.append(f"y{i+1}: {v_str} {dot_check}")
+        
+        if not self.orthogonal_vectors:
+            status_lines.append("(暂无有效向量)")
+        
+        if self.orthogonal_vectors:
+            # 检查线性无关性
+            unique_vectors = list(set(self.orthogonal_vectors))
+            matrix = []
+            for v in unique_vectors:
+                row = [(v >> (self.n-1-i)) & 1 for i in range(self.n)]
+                matrix.append(row)
+            rank = gf2_rank(matrix)
+            status_lines.extend([
+                "",
+                f"线性无关向量: {rank}/{self.n-1}",
+                "√ 可以尝试求解！" if rank >= self.n-1 else "还需要更多向量"
+            ])
+        
+        if self.game_won:
+            status_lines.extend([
+                "",
+                "游戏胜利！",
+                f"隐藏字符串: {bin(self.s)[2:].zfill(self.n)}"
+            ])
+        
+        y_pos = 110
+        for line in status_lines:
+            color = GOLD if "胜利" in line or "√" in line else NAVY
+            text_surface = font_small.render(line, True, color)
+            self.screen.blit(text_surface, (730, y_pos))
+            y_pos += 18
+        
+        # 操作指南
+        draw_panel(self.screen, 290, 600, 890, 160, "游戏指南")
+        
+        guide_lines = [
+            "背景故事: 你是一名量子密码学家，发现了一个神秘的黑盒Oracle函数f(x)。",
+            "已知线索: f(x) = f(x⊕s)，其中s是隐藏的密钥。你的任务是找出这个密钥！",
+            "操作说明:",
+            "量子并行: 同时创建所有输入状态，效率高但成本大",
+            "自定义输入: 精确控制输入状态，成本低但需要策略",
+            "Oracle查询: 让黑盒处理你的量子态，获得关键信息",
+            "测量操作: 观察量子态，每次测量都会改变系统状态",
+            "H变换: 量子干涉魔法，能增强有用信息的概率",
+        ]
+        
+        y_pos = 630
+        for line in guide_lines:
+            color = GRAY if line else BLACK
+            if line:
+                text_surface = font_small.render(line, True, color)
+                self.screen.blit(text_surface, (310, y_pos))
+            y_pos += 15
+        
+        pygame.display.flip()
+    
+    def run(self):
+        """运行游戏"""
+        while self.running:
+            self.handle_events()
+            self.draw()
+            self.clock.tick(FPS)
+        
+        pygame.quit()
+        sys.exit()
+
+# 游戏入口函数
+def play(screen, ai_settings, current_player):
+    """小游戏入口函数"""
+    game = SimonGame()
+    try:
+        game.run()
+        
+        if game.game_won:
+            cards = min(6, max(2, game.n + 1))
+            return {
+                "message": f"Simon算法挑战成功！获得{cards}张牌",
+                "effect": game.score // 50,
+                "cards_gained": cards,
+                "final_score": game.score
+            }
+        else:
+            return {
+                "message": "Simon算法挑战未完成",
+                "effect": game.score // 100,
+                "cards_gained": max(1, game.score // 200),
+                "final_score": game.score
+            }
+    except:
+        return {
+            "message": "游戏异常退出",
+            "effect": 0
+        }
+
+def main():
+    """主函数 - 独立运行"""
+    game = SimonGame()
+    game.run()
+
+if __name__ == "__main__":
+    main()

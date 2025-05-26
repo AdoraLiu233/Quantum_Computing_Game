@@ -51,7 +51,7 @@ class Player():
     def add_qubit(self, qubit=None):
         """向玩家集合中添加一个量子比特"""
         if qubit is None:
-            qubit = Qubit()  # 默认|0⟩态
+            qubit = Qubit()  # 默认|0>态
         self.qubits.append(qubit)
         self.qubit_count += 1
 
@@ -63,7 +63,7 @@ class Player():
     
     def measure_qubit(self, index):
         """
-        在|0⟩,|1⟩基下测量特定量子比特
+        在|0>,|1>基下测量特定量子比特
         返回:
             tuple: (测量结果(0或1), 分数变化)
         """
@@ -90,13 +90,13 @@ class Player():
         return "无效的道具索引"
     
 class Qubit:
-    """|0⟩,|1⟩为基底"""
+    """|0>,|1>为基底"""
     def __init__(self, alpha=None, beta=None):
         """
-        初始化为 α|0⟩ + β|1⟩
+        初始化为 α|0> + β|1>
         """
         if alpha is None and beta is None:
-            # 默认为|0⟩
+            # 默认为|0>
             self.alpha = complex(1, 0)
             self.beta = complex(0, 0)
         else:
@@ -114,7 +114,7 @@ class Qubit:
     
     def measure(self):
         """
-        |0⟩, |1⟩为基测量
+        |0>, |1>为基测量
         返回:
             元组: (0/1结果, 积分变化)
         """
@@ -139,4 +139,4 @@ class Qubit:
         self._normalize()
     
     def __str__(self):
-        return f"{self.alpha}|0⟩ + {self.beta}|1⟩"
+        return f"{self.alpha}|0> + {self.beta}|1>"
