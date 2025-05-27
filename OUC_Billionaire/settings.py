@@ -8,6 +8,7 @@ class Settings():
         self.screen_width = 1200
         self.screen_height = 1000  #660
         self.bg_color = (230, 230, 230)
+        self.max_rounds = 8 # 最大游戏轮数
         
         # 设置游戏统计信息
         self.ROLL_DICE = 0
@@ -17,8 +18,10 @@ class Settings():
         self.MINI_GAME_ACTIVE = 4   # 小游戏正在进行
         self.SHOW_MINI_GAME_RESULT = 5 # 显示小游戏结果
         self.SHOP = 6 # 商店状态
+        self.GAME_OVER = 9
         self.GET_QUBIT=7 # 获得qubit
         self.GET_ITEM=8 # 获得道具
+
         # 用于从其他模块安全访问地点实例列表 (例如传送功能)
         self.locations_instance_list = []
 

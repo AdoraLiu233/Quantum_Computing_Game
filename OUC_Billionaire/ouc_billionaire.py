@@ -1,9 +1,4 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Sun Jun  9 23:47:48 2019
-
-@author: Sherlock Holmes
-"""
 
 import pygame
 from settings import Settings
