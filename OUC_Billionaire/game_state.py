@@ -18,8 +18,19 @@ class GameState():
         # 游戏当前事件在事件列表中的下标
         self.cur_event_index = 0
 
+        self.current_round = 1
+        self.max_rounds = ai_settings.max_rounds
+
         self.current_mini_game_id = None    # 当前激活的小游戏ID (例如 "game1")
         self.mini_game_result_message = ""  # 小游戏结束后的结果信息 (例如 "游戏胜利！获得200金钱！")
         self.mini_game_player_effect = None # 小游戏对玩家产生的具体效果（例如金钱变化量）
+
+    def is_game_over(self):
+        """检查游戏是否应该结束"""
+        return self.current_round > self.max_rounds
+        
+    def increment_round(self):
+        """增加回合数"""
+        self.current_round += 1
         
         
