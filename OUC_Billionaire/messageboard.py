@@ -1,9 +1,4 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Thu Jun 13 23:29:50 2019
-
-@author: Sherlock Holmes
-"""
 
 import pygame
 import os
@@ -42,6 +37,7 @@ class Messageboard():
         self.player_msg_rects = []
         # --- 结束新增 ---
         self.button_rect = pygame.Rect(0, 0, 160, 50)
+        self.quit_button_rect = None
 
         # 事件消息列表
         self.event_msg = []
@@ -176,7 +172,7 @@ class Messageboard():
             self.button_rect = self.end_round_button.get_rect()
             self.button_rect.bottom = self.box_3.bottom - 10
             self.button_rect.right = self.box_3.right - 10
-            self.event_msg.append(self.font.render("事件已处理完毕。", True, self.text_color_2))
+            self.event_msg.append(self.font.render("无事发生。", True, self.text_color_2))
 
         # --- 统一处理消息和按钮的位置 ---
         current_y = self.box_3.top + 10
@@ -197,6 +193,7 @@ class Messageboard():
             self.button_rect.right = self.box_3.right - 10
     
     def draw_messageboard(self, gs, pq):
+
         pygame.draw.rect(self.screen, self.box_color_1, self.box_1)
         pygame.draw.rect(self.screen, self.box_color_2, self.box_2)
         pygame.draw.rect(self.screen, self.box_color_3, self.box_3)
@@ -215,4 +212,43 @@ class Messageboard():
            gs.game_state == self.ai_settings.SHOW_MINI_GAME_RESULT or \
             gs.game_state == self.ai_settings.SHOP_RESULT:
             self.screen.blit(self.end_round_button, self.button_rect)
+
+        if gs.game_state == self.ai_settings.GAME_OVER:
+            self._setup_game_over_buttons()
+        else:
+            pygame.draw.rect(self.screen, self.box_color_1, self.box_1)
+            pygame.draw.rect(self.screen, self.box_color_2, self.box_2)
+            pygame.draw.rect(self.screen, self.box_color_3, self.box_3)
+
+            self.update_players_message(pq) # 更新玩家信息
+            for i in range(len(self.player_rendered_msgs)): # 使用更新后的列表名
+                self.screen.blit(self.player_rendered_msgs[i][0], self.player_msg_rects[i][0])
+                self.screen.blit(self.player_rendered_msgs[i][1], self.player_msg_rects[i][1])
+
+            self.update_event_message(gs, pq.cur_player) # 更新事件/游戏状态信息
+            for i in range(len(self.event_msg)):
+                self.screen.blit(self.event_msg[i], self.event_msg_rect[i])
+
+            # 绘制“结束回合”按钮
+            if gs.game_state == self.ai_settings.END_ROUND or \
+            gs.game_state == self.ai_settings.SHOW_MINI_GAME_RESULT:
+                self.screen.blit(self.end_round_button, self.button_rect)
+            
+            pass
+    def _setup_game_over_buttons(self):
+        """设置游戏结束界面的按钮区域"""
+        # 重新开始按钮区域
+        self.restart_button_rect = pygame.Rect(
+            self.ai_settings.screen_width//2 - 150, 
+            self.ai_settings.screen_height//2 + 200, 
+            120, 40
+        )
+        
+        # 退出按钮区域  
+        self.quit_button_rect = pygame.Rect(
+            self.ai_settings.screen_width//2 + 30, 
+            self.ai_settings.screen_height//2 + 200, 
+            120, 40
+        )
+
         

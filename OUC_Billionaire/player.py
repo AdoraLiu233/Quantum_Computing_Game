@@ -20,6 +20,8 @@ class Player():
         self.pos = 0
         # 玩家初始积分
         self.score = 0
+        # 玩家道具
+        self.items = []
 
         # 量子属性
         self.qubits = []  # 存储玩家拥有的Qubit对象列表

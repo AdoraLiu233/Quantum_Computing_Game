@@ -10,6 +10,7 @@ class PlayerQueue():
         self.cur_player = None
         # 当前游戏回合玩家的下标
         self.cur_player_index = -1
+        self.round_completed = False
     
     def empty(self):
         """判断队列是否为空"""
@@ -31,6 +32,14 @@ class PlayerQueue():
         # 获得下一轮游戏的玩家的下标
         self.cur_player_index = (self.cur_player_index + 1) % self.size
         self.cur_player = self.queue[self.cur_player_index]
+        if self.cur_player_index == 0:
+            self.round_completed = True
+        else:
+            self.round_completed = False
+
+    def is_round_completed(self):
+        """检查当前轮次是否完成"""
+        return self.round_completed
     
     def reverse_draw(self):
         """逆序绘制队列中的玩家（图片位置）"""
