@@ -133,6 +133,39 @@ class Messageboard():
                 self.event_msg.append(self.font.render("小游戏已结束。", True, self.text_color_2))
             # 在此状态下，也显示“结束回合”按钮，其rect在draw_messageboard中处理或者在这里设置
             # self.button_rect 的位置计算应在此处或 draw 中确保
+        elif gs.game_state == self.ai_settings.SHOP_ENTERING:
+            intro_msg_str = f"你来到了二校门，校外有清华印象文创店，快来补给吧！"
+            intro_msg_str = f"即将进入商店!"
+            intro_img = self.font.render(intro_msg_str, True, self.text_color_2)
+            self.event_msg.append(intro_img)
+
+            # 创建一个文本按钮 "开始小游戏"
+            start_button_text = "点击进入商店"
+            start_button_img = self.button_font.render(start_button_text, True, (255,255,255), (0,128,0)) #白字绿底
+            self.event_msg.append(start_button_img)
+            # 其 rect 将在下面统一处理位置时创建并赋值给 self.start_minigame_button_rect
+        elif gs.game_state == self.ai_settings.SHOP_ACTIVE:
+            # 这个状态下，信息板可以显示 "小游戏进行中..."
+            # game_name = self.ai_settings.minigame_configs.get(gs.current_mini_game_id, {}).get("name", gs.current_mini_game_id)
+            active_msg_str = f"购买物品中..."
+            active_img = self.font.render(active_msg_str, True, self.text_color_2)
+            self.event_msg.append(active_img)
+
+        elif gs.game_state == self.ai_settings.SHOP_RESULT:
+            print("4444444444444")
+            print(gs.shop_result_message)
+            if gs.shop_result_message:
+                result_color = self.text_color_2
+                # if "胜利" in gs.mini_game_result_message: result_color = (0, 150, 0) # 绿色
+                # elif "失败" in gs.mini_game_result_message: result_color = (150, 0, 0) # 红色
+                render_message1= gs.shop_result_message+" "+ f" 购买花费: {gs.shop_cost} 金钱"
+                render_message2= f"当前资金：{player.money} "
+                result_img1= self.font.render(render_message1, True, result_color)
+                result_img2 = self.font.render(render_message2, True, result_color)
+                self.event_msg.append(result_img1)
+                self.event_msg.append(result_img2)
+            else:
+                self.event_msg.append(self.font.render("小游戏已结束。", True, self.text_color_2))
 
         elif gs.game_state == self.ai_settings.END_ROUND:
             # 创建结束回合按钮信息
@@ -155,11 +188,31 @@ class Messageboard():
                 self.start_minigame_button_rect = msg_rect
         
         # 设置“结束回合”按钮的位置 (仅在 END_ROUND 或 SHOW_MINI_GAME_RESULT 状态)
-        if gs.game_state == self.ai_settings.END_ROUND or gs.game_state == self.ai_settings.SHOW_MINI_GAME_RESULT:
+        if gs.game_state == self.ai_settings.END_ROUND or gs.game_state == self.ai_settings.SHOW_MINI_GAME_RESULT or gs.game_state ==self.ai_settings.SHOP_RESULT:
             self.button_rect.bottom = self.box_3.bottom - 10
             self.button_rect.right = self.box_3.right - 10
     
     def draw_messageboard(self, gs, pq):
+
+        pygame.draw.rect(self.screen, self.box_color_1, self.box_1)
+        pygame.draw.rect(self.screen, self.box_color_2, self.box_2)
+        pygame.draw.rect(self.screen, self.box_color_3, self.box_3)
+
+        self.update_players_message(pq) # 更新玩家信息
+        for i in range(len(self.player_rendered_msgs)): # 使用更新后的列表名
+            self.screen.blit(self.player_rendered_msgs[i][0], self.player_msg_rects[i][0])
+            self.screen.blit(self.player_rendered_msgs[i][1], self.player_msg_rects[i][1])
+
+        self.update_event_message(gs, pq.cur_player) # 更新事件/游戏状态信息
+        for i in range(len(self.event_msg)):
+            self.screen.blit(self.event_msg[i], self.event_msg_rect[i])
+
+        # 绘制“结束回合”按钮
+        if gs.game_state == self.ai_settings.END_ROUND or \
+           gs.game_state == self.ai_settings.SHOW_MINI_GAME_RESULT or \
+            gs.game_state == self.ai_settings.SHOP_RESULT:
+            self.screen.blit(self.end_round_button, self.button_rect)
+
         if gs.game_state == self.ai_settings.GAME_OVER:
             self._setup_game_over_buttons()
         else:
@@ -197,4 +250,5 @@ class Messageboard():
             self.ai_settings.screen_height//2 + 200, 
             120, 40
         )
+
         

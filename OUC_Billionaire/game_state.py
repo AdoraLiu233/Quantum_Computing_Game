@@ -25,6 +25,10 @@ class GameState():
         self.mini_game_result_message = ""  # 小游戏结束后的结果信息 (例如 "游戏胜利！获得200金钱！")
         self.mini_game_player_effect = None # 小游戏对玩家产生的具体效果（例如金钱变化量）
 
+        self.shop_result_message = ""        # 商店结果信息 (例如 "购买成功！花费50金钱！")
+        self.shop_result_effect = 0       # 商店对玩家产生的具体效果（例如金钱变化量）
+
+
     def is_game_over(self):
         """检查游戏是否应该结束"""
         return self.current_round > self.max_rounds
@@ -32,5 +36,6 @@ class GameState():
     def increment_round(self):
         """增加回合数"""
         self.current_round += 1
+
         
         

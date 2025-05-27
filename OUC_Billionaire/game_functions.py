@@ -20,6 +20,7 @@ import os
 import simon
 import quantum_bomb
 import math
+import shop
 
 def draw_dashed_arrow(screen, color, start, end, dash_length=10, space_length=5, arrow_size=10):
     # 向量差
@@ -68,13 +69,17 @@ def update_screen(ai_settings, screen, gs, play_button, locations,
         if gs.game_state == ai_settings.MINI_GAME_ACTIVE:
             # 小游戏活动时，屏幕更新由小游戏本身负责。
             pass # 假设小游戏会自己刷新整个屏幕
-        elif gs.game_state == ai_settings.SHOP:
+        elif gs.game_state == ai_settings.SHOP_ACTIVE:
             # 绘制商店界面
-            screen.blit(ai_settings.shop_image, (0, 0))
 
+            # screen.blit(ai_settings.shop_image, (0, 0))
+            pass
+
+            
         elif gs.game_state == ai_settings.GAME_OVER:
             # 显示游戏结束界面
             draw_game_over_screen(screen, ai_settings, gs, pq)
+
             
 
         elif gs.game_state in (ai_settings.GET_QUBIT, ai_settings.GET_ITEM):
@@ -369,6 +374,7 @@ def check_click_events(ai_settings, gs, play_button, locations, messageboard, di
             gs.cur_event_index = current_loc.trigger_event(pq.cur_player) # cur_event_index 现在可以是字符串
 
             gs.mini_game_result_message = "" # 重置小游戏结果
+            gs.shop_result_message = "" # 重置商店结果
 
             if gs.cur_event_index == "TRIGGER_MINI_GAME":
                 gs.current_mini_game_id = current_loc.mini_game_id
@@ -376,7 +382,10 @@ def check_click_events(ai_settings, gs, play_button, locations, messageboard, di
                 # print(f"Player {pq.cur_player.player_name} landed on a minigame: {gs.current_mini_game_id}")
             elif gs.cur_event_index == "TRIGGER_SHOP":
                 print("-------------------------enter shop-------------------------")
-                gs.game_state = ai_settings.SHOP
+
+                gs.game_state = ai_settings.SHOP_ENTERING
+
+                
             elif gs.cur_event_index == "GET_RANDOM_QUBIT":
                 new_qubit = current_loc.get_random_qubit()
                 pq.cur_player.add_qubit(new_qubit)
@@ -397,12 +406,15 @@ def check_click_events(ai_settings, gs, play_button, locations, messageboard, di
                     "content": new_item
                 }
                 gs.game_state = ai_settings.GET_ITEM
+
             elif isinstance(gs.cur_event_index, int): # 是普通事件索引
                 print("无事发生")
                 gs.game_state = ai_settings.END_ROUND
             else:
                 print(f"Warning: Unknown event index type: {gs.cur_event_index}")
                 gs.game_state = ai_settings.END_ROUND
+    elif gs.game_state == ai_settings.SHOP_ENTERING:
+        run_shop(ai_settings, screen, gs, pq.cur_player)
 
     elif gs.game_state == ai_settings.MINI_GAME_STARTING:
         # 这个状态下，通常 Messageboard 会显示 "点击开始小游戏" 或类似按钮
@@ -435,9 +447,13 @@ def check_click_events(ai_settings, gs, play_button, locations, messageboard, di
                 gs.game_state = ai_settings.ROLL_DICE
 
     # 处理商店逻辑
-    elif gs.game_state == ai_settings.SHOP:
+    elif gs.game_state == ai_settings.SHOP_RESULT:
         # 处理商店点击事件
-        if messageboard.shop_button_rect.collidepoint(mouse_x, mouse_y):
+        if messageboard.button_rect.collidepoint(mouse_x, mouse_y):
+            gs.mini_game_result_message = "" # 清理结果
+            gs.mini_game_player_effect = None
+            gs.current_mini_game_id = None
+            pq.next_round()
             gs.game_state = ai_settings.ROLL_DICE # 返回掷骰子状态
             # 这里可以添加商店逻辑，例如购买物品等
     # 处理获得qubit/item逻辑
@@ -554,6 +570,32 @@ def run_specific_mini_game(ai_settings, screen, gs, current_player):
 
     pygame.display.set_caption(original_caption[0])
     gs.game_state = ai_settings.SHOW_MINI_GAME_RESULT
+
+
+def run_shop(ai_settings, screen, gs, current_player):
+    """
+    根据 gs.current_mini_game_id 调用并运行相应的小游戏。
+    小游戏应该处理自己的事件循环和屏幕绘制。
+    """
+    original_caption = pygame.display.get_caption()
+    game_id_for_title = gs.current_mini_game_id if gs.current_mini_game_id else "未知游戏"
+    pygame.display.set_caption(f"小游戏: {game_id_for_title}")
+
+    shop_result = {"message": f"小游戏 '{game_id_for_title}' 未实现或配置错误。", "effect": 0}
+    print("2222222222222")
+    shop_result = shop.play(screen, ai_settings, current_player)
+    print("333333333333333")
+   
+
+    gs.shop_result_message = shop_result["message"]
+    gs.shop_cost = shop_result["cost"] # Store the effect
+    print(f"Shop result message: {gs.shop_result_message}, cost: {gs.shop_cost}")
+    current_player.money-=gs.shop_cost  # 扣除玩家金钱
+    # Apply the effect to the player
+    
+
+    pygame.display.set_caption(original_caption[0])
+    gs.game_state = ai_settings.SHOP_RESULT
 
 def create_player_queue(ai_settings, screen, locations, pq):
     # 创建所有玩家
