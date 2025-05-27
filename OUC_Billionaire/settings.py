@@ -17,6 +17,7 @@ class Settings():
         self.MINI_GAME_ACTIVE = 4   # 小游戏正在进行
         self.SHOW_MINI_GAME_RESULT = 5 # 显示小游戏结果
         self.SHOP=6 # 商店状态
+        self.MINIGAME_2=7
         # 用于从其他模块安全访问地点实例列表 (例如传送功能)
         self.locations_instance_list = []
 

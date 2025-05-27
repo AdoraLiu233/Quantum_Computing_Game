@@ -18,6 +18,7 @@ from location import Gate
 from location import TechnologyBuilding
 from location import ArtMuseum
 from location import OfficePlace
+from mini_game_2 import run_minigame_2
 import json
 from player import Player
 import os
@@ -75,6 +76,9 @@ def update_screen(ai_settings, screen, gs, play_button, locations,
             # 绘制商店界面
             screen.blit(ai_settings.shop_image, (0, 0))
             # messageboard.draw_messageboard(gs, event_imgs, pq)
+        elif gs.game_state == ai_settings.MINIGAME_2:#补全minigame_2
+            run_minigame_2(screen, gs,ai_settings)
+            
         else:
             # 绘制地图等主游戏元素
             
@@ -156,6 +160,8 @@ def check_click_events(ai_settings, gs, play_button, locations, events_dict,
             elif gs.cur_event_index == "TRIGGER_SHOP":
                 print("-------------------------enter shop-------------------------")
                 gs.game_state = ai_settings.SHOP
+            elif gs.cur_event_index == "TRIGGER_MINIGAME_2":
+                gs.game_state = ai_settings.MINIGAME_2
             elif isinstance(gs.cur_event_index, int): # 是普通事件索引
                 if 0 <= gs.cur_event_index < len(events_dict) and 0 <= gs.cur_event_index < len(events_imgs):
                     gs.cur_event_imgs = events_imgs[gs.cur_event_index]
@@ -354,6 +360,8 @@ def run_specific_mini_game(ai_settings, screen, gs, current_player):
     if gs.current_mini_game_id == "reaction_test": # Ensure this ID matches your locations_list.txt
         game_result = mini_game_reaction.play(screen, ai_settings, current_player)
     # # Add other mini-games here
+    elif gs.current_mini_game_id == "minigame_2":
+        game_result = run_minigame_2(screen,gs,ai_settings)
     else:
         print(f"Warning: Attempted to run unknown or unhandled minigame ID '{gs.current_mini_game_id}'")
         # Fallback message already set in game_result init
