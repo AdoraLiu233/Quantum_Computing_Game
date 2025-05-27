@@ -111,12 +111,12 @@ class QuantumBombGameUI:
         
         # 颜色方案
         self.colors = {
-            'bg': (248, 249, 250),
-            'text': (33, 37, 41),
+            'bg': (255, 255, 255),
+            'text': (70, 130, 180),
             'primary': (0, 123, 255),
             'success': (40, 167, 69),
-            'danger': (220, 53, 69),
-            'warning': (255, 193, 7),
+            'danger': (220, 20, 60),
+            'warning': (255, 165, 0),
             'info': (23, 162, 184),
             'card_bg': (255, 255, 255),
             'card_border': (206, 212, 218),

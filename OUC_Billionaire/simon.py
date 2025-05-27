@@ -609,7 +609,7 @@ class SimonGame:
         self.screen.fill((250, 250, 250))
         
         # 标题
-        title_surface = font_title.render("Simon算法游戏", True, NAVY)
+        title_surface = font_title.render("众里寻s千百度", True, NAVY)
         title_rect = title_surface.get_rect(center=(WINDOW_WIDTH // 2, 25))
         self.screen.blit(title_surface, title_rect)
         
