@@ -35,9 +35,9 @@ class Player():
         """控制玩家每回合的移动"""
         self.pos = (self.pos + step) % self.ai_settings.location_cnt
     
-    # def invest(self, val):
-    #     """控制玩家的投资的收支"""
-    #     self.money += val
+    def invest(self, val):
+        """控制玩家的投资的收支"""
+        self.money += val
         
     def draw_player(self):
         """绘制玩家的位置"""

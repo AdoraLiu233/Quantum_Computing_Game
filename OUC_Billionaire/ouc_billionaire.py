@@ -48,11 +48,6 @@ def run_game():
     # 绘制骰子初始状态
     dice.draw_dice(dice.cur_dice)
     
-    # 读取事件并创建事件字典
-    events_dict = gf.read_events_list(ai_settings)
-    # 读取事件图片并创建列表
-    event_images = gf.read_event_images(ai_settings)
-    
     # 游戏当前的状态
     gs = GameState(ai_settings)
     game_clock = pygame.time.Clock() # 控制游戏帧率
@@ -68,13 +63,12 @@ def run_game():
             # 并在结束后改变 gs.game_state
         else:
             # 正常游戏流程的事件处理
-            gf.check_events(ai_settings, gs, play_button, locations, events_dict,
-                            event_images, messageboard, dice, player_que)
+            gf.check_events(ai_settings, gs, play_button, locations, messageboard, dice, player_que)
 
         # 2. 屏幕更新 (只有在非小游戏活动状态下，主游戏才更新屏幕)
         if gs.game_state != ai_settings.MINI_GAME_ACTIVE:
             gf.update_screen(ai_settings, screen, gs, play_button, locations,
-                             location_points, event_images, # events_dict 不需要了
+                             location_points,
                              messageboard, dice, player_que)
 
         game_clock.tick(30) # 例如，每秒30帧

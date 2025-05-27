@@ -38,7 +38,7 @@ class Settings():
         self.shop_image = pygame.image.load("images/shop.png")
         
         # 设置玩家初始拥有的金钱
-        self.player_init_money = 1000
+        self.player_init_money = 100
         
         # 设置地点圆点半径大小和颜色
         self.circle_radius = 6

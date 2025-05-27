@@ -1,9 +1,4 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Mon Jun 10 22:05:22 2019
-
-@author: Sherlock Holmes
-"""
 
 import sys
 import pygame
@@ -65,7 +60,7 @@ def draw_dashed_arrow(screen, color, start, end, dash_length=10, space_length=5,
 
 
 def update_screen(ai_settings, screen, gs, play_button, locations,
-                  location_points, event_imgs, messageboard, dice, pq): # 删除了 events_dict，messageboard 自己有
+                  location_points, messageboard, dice, pq):
     """更新屏幕上的图像，并切换到新屏幕"""
     screen.fill(ai_settings.bg_color)
     if gs.game_active:
@@ -75,13 +70,11 @@ def update_screen(ai_settings, screen, gs, play_button, locations,
         elif gs.game_state == ai_settings.SHOP:
             # 绘制商店界面
             screen.blit(ai_settings.shop_image, (0, 0))
-            # messageboard.draw_messageboard(gs, event_imgs, pq)
         elif gs.game_state == ai_settings.MINIGAME_2:#补全minigame_2
             run_minigame_2(screen, gs,ai_settings)
             
         else:
             # 绘制地图等主游戏元素
-            
             screen.blit(ai_settings.map, (0, 0))
             for location in locations:
                 location.draw_location()
@@ -90,9 +83,9 @@ def update_screen(ai_settings, screen, gs, play_button, locations,
                 start = location_points[i]
                 end = location_points[(i + 1) % len(location_points)]  # 闭环
                 draw_dashed_arrow(screen, (0, 0, 0), start, end)
-            print(f"Player {pq.cur_player.player_name}'s pos: ", pq.cur_player.pos)
+            # print(f"Player {pq.cur_player.player_name}'s pos: ", pq.cur_player.pos)
             pq.reverse_draw() # 绘制玩家
-            messageboard.draw_messageboard(gs, event_imgs, pq) # 绘制信息板 (event_imgs可能用不到了，看gs.cur_event_imgs)
+            messageboard.draw_messageboard(gs, pq)
             # if gs.game_state == ai_settings.ROLL_DICE : # 只在掷骰子阶段画骰子
             dice.draw_dice(dice.cur_dice)
     else: # 游戏未激活
@@ -101,8 +94,7 @@ def update_screen(ai_settings, screen, gs, play_button, locations,
 
     pygame.display.flip()
 
-def check_events(ai_settings, gs, play_button, locations, events_dict, 
-                 events_imgs, messageboard, dice, pq):
+def check_events(ai_settings, gs, play_button, locations, messageboard, dice, pq):
     """监视并相应鼠标和键盘事件"""
     if gs.game_state == ai_settings.MINI_GAME_ACTIVE:
         # 小游戏通常有自己的事件处理循环。
@@ -121,13 +113,12 @@ def check_events(ai_settings, gs, play_button, locations, events_dict,
             # 确保在调用 check_click_events 之前游戏是激活的
             if gs.game_active:
                  check_click_events(ai_settings, gs, play_button, locations,
-                                   events_dict, events_imgs, messageboard, dice, pq)
+                                   messageboard, dice, pq)
             elif play_button.img_rect.collidepoint(pygame.mouse.get_pos()): # 处理游戏未激活时点击开始按钮
                  check_click_events(ai_settings, gs, play_button, locations,
-                                   events_dict, events_imgs, messageboard, dice, pq)
+                                   messageboard, dice, pq)
 
-def check_click_events(ai_settings, gs, play_button, locations, events_dict, 
-                       events_imgs, messageboard, dice, pq):
+def check_click_events(ai_settings, gs, play_button, locations, messageboard, dice, pq):
     """处理鼠标点击事件的函数"""
     # 定位鼠标点击位置
     mouse_x, mouse_y = pygame.mouse.get_pos()
@@ -150,7 +141,6 @@ def check_click_events(ai_settings, gs, play_button, locations, events_dict,
             print(f"Player {pq.cur_player.player_name} moved to {current_loc.name}.")
             gs.cur_event_index = current_loc.trigger_event(pq.cur_player) # cur_event_index 现在可以是字符串
 
-            gs.cur_event_imgs = None # 重置事件图片
             gs.mini_game_result_message = "" # 重置小游戏结果
 
             if gs.cur_event_index == "TRIGGER_MINI_GAME":
@@ -163,42 +153,11 @@ def check_click_events(ai_settings, gs, play_button, locations, events_dict,
             elif gs.cur_event_index == "TRIGGER_MINIGAME_2":
                 gs.game_state = ai_settings.MINIGAME_2
             elif isinstance(gs.cur_event_index, int): # 是普通事件索引
-                if 0 <= gs.cur_event_index < len(events_dict) and 0 <= gs.cur_event_index < len(events_imgs):
-                    gs.cur_event_imgs = events_imgs[gs.cur_event_index]
-                    if events_dict[gs.cur_event_index]['type'] == "multiple_choice":
-                        gs.game_state = ai_settings.CHOOSE
-                    else:
-                        pq.cur_player.invest(events_dict[gs.cur_event_index]['change'])
-                        gs.game_state = ai_settings.END_ROUND
-                else:
-                    print(f"Error: Event index {gs.cur_event_index} out of bounds or invalid event data.")
-                    gs.game_state = ai_settings.END_ROUND # 出错则直接结束回合
+                print("无事发生")
+                gs.game_state = ai_settings.END_ROUND
             else:
                 print(f"Warning: Unknown event index type: {gs.cur_event_index}")
                 gs.game_state = ai_settings.END_ROUND
-
-    elif gs.game_state == ai_settings.CHOOSE:
-        # ... (保持你现有的CHOOSE逻辑) ...
-        # 选择后，设置 gs.game_state = ai_settings.END_ROUND
-        chosen = False
-        if messageboard.event_msg_rect[1].collidepoint(mouse_x, mouse_y):
-            gs.cur_event_imgs = gs.cur_event_imgs['A']
-            pq.cur_player.invest(events_dict[gs.cur_event_index]['A']['change'])
-            chosen = True
-        elif messageboard.event_msg_rect[2].collidepoint(mouse_x, mouse_y):
-            gs.cur_event_imgs = gs.cur_event_imgs['B']
-            pq.cur_player.invest(events_dict[gs.cur_event_index]['B']['change'])
-            chosen = True
-        elif messageboard.event_msg_rect[3].collidepoint(mouse_x, mouse_y):
-            gs.cur_event_imgs = gs.cur_event_imgs['C']
-            pq.cur_player.invest(events_dict[gs.cur_event_index]['C']['change'])
-            chosen = True
-
-        if chosen:
-            gs.game_state = ai_settings.END_ROUND
-        else: #没点到选项
-            return
-
 
     elif gs.game_state == ai_settings.MINI_GAME_STARTING:
         # 这个状态下，通常 Messageboard 会显示 "点击开始小游戏" 或类似按钮
@@ -216,7 +175,6 @@ def check_click_events(ai_settings, gs, play_button, locations, events_dict,
             gs.mini_game_result_message = "" # 清理结果
             gs.mini_game_player_effect = None
             gs.current_mini_game_id = None
-            gs.cur_event_imgs = None
             pq.next_round()
             gs.game_state = ai_settings.ROLL_DICE
     # 处理商店逻辑
@@ -228,7 +186,6 @@ def check_click_events(ai_settings, gs, play_button, locations, events_dict,
 
     elif gs.game_state == ai_settings.END_ROUND:
         if messageboard.button_rect.collidepoint(mouse_x, mouse_y):
-            gs.cur_event_imgs = None
             pq.next_round()
             gs.game_state = ai_settings.ROLL_DICE
 
@@ -288,63 +245,6 @@ def read_events_list(ai_settings):
         # 更新事件总数
         ai_settings.event_cnt = len(events_dict['events'])
         return events_dict['events']
-
-def read_event_images(ai_settings):
-    """从event_images目录下读取所有的事件图片并存入一个列表"""
-    event_images = []
-    dir_path = ai_settings.event_images_dir
-    dir_cnt = 0
-    # 计算文件夹数量
-    for name in os.listdir(dir_path):
-        sub_path = os.path.join(dir_path, name)
-        if os.path.isdir(sub_path):
-            dir_cnt += 1
-    #print("dir_cnt: " + str(dir_cnt))
-    # 遍历所有文件夹
-    for i in range(0, dir_cnt):
-        event_dir_path = dir_path + "/event_" + str(i).zfill(3)
-        file_cnt = 0
-        # 计算文件数量
-        for name in os.listdir(event_dir_path):
-            sub_path = os.path.join(event_dir_path, name)
-            if os.path.isfile(sub_path):
-                file_cnt += 1
-        # 如果目录下只有一个文件，则视为固定结果事件文件夹处理
-        if file_cnt == 1:
-            img_result = pygame.image.load((event_dir_path + "/result.png"))
-            event_dict = dict({
-                'result': img_result
-                })
-            event_images.append(event_dict)
-        # 如果目录下有三个文件，则视为随机结果事件文件夹处理
-        elif file_cnt == 3:
-            img_result_a = pygame.image.load((event_dir_path + "/result_A.png"))
-            img_result_b = pygame.image.load((event_dir_path + "/result_B.png"))
-            img_result_c = pygame.image.load((event_dir_path + "/result_C.png"))
-            event_dict = dict({
-                'A': {'result': img_result_a},
-                'B': {'result': img_result_b},
-                'C': {'result': img_result_c}
-                })
-            event_images.append(event_dict)
-        # 如果目录下有七个文件，则视为多项选择事件文件夹处理
-        elif file_cnt == 7:
-            img_content = pygame.image.load((event_dir_path + "/content.png"))
-            img_choice_a = pygame.image.load((event_dir_path + "/choice_A.png"))
-            img_choice_b = pygame.image.load((event_dir_path + "/choice_B.png"))
-            img_choice_c = pygame.image.load((event_dir_path + "/choice_C.png"))
-            img_result_a = pygame.image.load((event_dir_path + "/result_A.png"))
-            img_result_b = pygame.image.load((event_dir_path + "/result_B.png"))
-            img_result_c = pygame.image.load((event_dir_path + "/result_C.png"))
-            event_dict = dict({
-                    'content': img_content, 
-                    'A': {'choice': img_choice_a, 'result': img_result_a},
-                    'B': {'choice': img_choice_b, 'result': img_result_b},
-                    'C': {'choice': img_choice_c, 'result': img_result_c}
-                    })
-            event_images.append(event_dict)
-    #print(len(event_images))
-    return event_images
 
 def run_specific_mini_game(ai_settings, screen, gs, current_player):
     """

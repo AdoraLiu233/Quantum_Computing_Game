@@ -106,12 +106,6 @@ class Messageboard():
             for msg_str in event_msg_str_list:
                 msg_img = self.font.render(msg_str, True, self.text_color_2)    
                 self.event_msg.append(msg_img)
-        elif gs.game_state == self.ai_settings.CHOOSE:
-            # 创建触发事件的信息
-            self.event_msg.append(gs.cur_event_imgs['content'])
-            self.event_msg.append(gs.cur_event_imgs['A']['choice'])
-            self.event_msg.append(gs.cur_event_imgs['B']['choice'])
-            self.event_msg.append(gs.cur_event_imgs['C']['choice'])
         elif gs.game_state == self.ai_settings.MINI_GAME_STARTING:
             intro_msg_str = f"你来到了小游戏地点: {gs.current_mini_game_id}!"
             game_name = self.ai_settings.minigame_configs.get(gs.current_mini_game_id, {}).get("name", gs.current_mini_game_id)
@@ -149,10 +143,7 @@ class Messageboard():
             self.button_rect = self.end_round_button.get_rect()
             self.button_rect.bottom = self.box_3.bottom - 10
             self.button_rect.right = self.box_3.right - 10
-            if gs.cur_event_imgs and 'result' in gs.cur_event_imgs:
-                 self.event_msg.append(gs.cur_event_imgs['result'])
-            else: # 如果没有图片结果 (例如直接金钱变化事件)
-                 self.event_msg.append(self.font.render("事件已处理完毕。", True, self.text_color_2))
+            self.event_msg.append(self.font.render("事件已处理完毕。", True, self.text_color_2))
 
         # --- 统一处理消息和按钮的位置 ---
         current_y = self.box_3.top + 10
@@ -172,7 +163,7 @@ class Messageboard():
             self.button_rect.bottom = self.box_3.bottom - 10
             self.button_rect.right = self.box_3.right - 10
     
-    def draw_messageboard(self, gs, event_imgs, pq): # event_imgs 可能不再直接需要
+    def draw_messageboard(self, gs, pq):
         pygame.draw.rect(self.screen, self.box_color_1, self.box_1)
         pygame.draw.rect(self.screen, self.box_color_2, self.box_2)
         pygame.draw.rect(self.screen, self.box_color_3, self.box_3)
