@@ -71,7 +71,12 @@ def update_screen(ai_settings, screen, gs, play_button, locations,
         elif gs.game_state == ai_settings.SHOP:
             # 绘制商店界面
             screen.blit(ai_settings.shop_image, (0, 0))
-            
+        elif gs.game_state in (ai_settings.GET_QUBIT, ai_settings.GET_ITEM):
+            scaled_bg = pygame.transform.scale(ai_settings.get_qubit_item_image, 
+                                      (ai_settings.screen_width, ai_settings.screen_height))
+            screen.blit(scaled_bg, (0, 0))
+            # 绘制奖励信息
+            _draw_reward_message(ai_settings,gs, screen, messageboard)
         else:
             # 绘制地图等主游戏元素
             screen.blit(ai_settings.map, (0, 0))
@@ -92,6 +97,102 @@ def update_screen(ai_settings, screen, gs, play_button, locations,
         play_button.draw_button()
 
     pygame.display.flip()
+
+def _draw_reward_message(ai_settings, gs, screen, messageboard):
+    """绘制奖励详细信息"""
+    popup_width, popup_height = 500, 300
+    popup_rect = pygame.Rect(
+        (ai_settings.screen_width - popup_width) // 2,
+        (ai_settings.screen_height - popup_height) // 2,
+        popup_width,
+        popup_height
+    )
+
+    # 绘制弹窗背景 (带圆角和阴影效果)
+    pygame.draw.rect(screen, (240, 240, 245), popup_rect, border_radius=15)
+    pygame.draw.rect(screen, (50, 50, 70), popup_rect, width=3, border_radius=15)
+    
+    # 添加装饰性元素
+    pygame.draw.line(screen, (100, 150, 200), 
+                    (popup_rect.left + 30, popup_rect.top + 70),
+                    (popup_rect.right - 30, popup_rect.top + 70), 3)
+
+    # 确定消息内容
+    if gs.game_state == ai_settings.GET_QUBIT:
+        title = "获得量子比特"
+        qubit = gs.reward_data["content"]
+        alpha_str = f"{qubit.alpha.real:.2f}".rstrip('0').rstrip('.')
+        beta_str = f"{qubit.beta.real:.2f}".rstrip('0').rstrip('.')
+        prob_1 = abs(qubit.beta)**2 * 100
+        title_surf = ai_settings.reward_font_large.render(title, True, (30, 30, 120))
+        screen.blit(title_surf, (popup_rect.centerx - title_surf.get_width()//2, popup_rect.top + 20))
+        
+        state_text = f"量子态: {alpha_str}|0> + {beta_str}|1>"
+        state_surf = ai_settings.reward_font_small.render(state_text, True, (60, 60, 60))
+        screen.blit(state_surf, (popup_rect.centerx - state_surf.get_width()//2, popup_rect.top + 120))
+        
+        prob_text = f"测量结果为1的概率: {prob_1:.1f}%"
+        prob_surf = ai_settings.reward_font_small.render(prob_text, True, (60, 60, 60))
+        screen.blit(prob_surf, (popup_rect.centerx - prob_surf.get_width()//2, popup_rect.top + 160))
+
+    elif gs.game_state == ai_settings.GET_ITEM:
+        title = "获得道具"
+        item = gs.reward_data["content"]
+        title_surf = ai_settings.reward_font_large.render(title, True, (30, 30, 120))
+        screen.blit(title_surf, (popup_rect.centerx - title_surf.get_width()//2, popup_rect.top + 20))
+        
+        name_text = f"名称: {item.name}"
+        name_surf = ai_settings.reward_font_small.render(name_text, True, (60, 60, 60))
+        screen.blit(name_surf, (popup_rect.centerx - name_surf.get_width()//2, popup_rect.top + 120))
+        
+        desc_lines = _wrap_text(item.description, ai_settings.reward_font_small, popup_width - 100)
+        for i, line in enumerate(desc_lines):
+            desc_surf = ai_settings.reward_font_small.render(line, True, (80, 80, 80))
+            screen.blit(desc_surf, (popup_rect.centerx - desc_surf.get_width()//2, popup_rect.top + 160 + i*20))
+    else:
+        return
+
+    # 绘制确认按钮 (美观样式)
+    button_rect = pygame.Rect(
+        popup_rect.centerx - 80,
+        popup_rect.bottom - 70,
+        160, 50
+    )
+    
+    # 按钮交互效果
+    mouse_pos = pygame.mouse.get_pos()
+    button_color = (100, 180, 100) if button_rect.collidepoint(mouse_pos) else (70, 150, 70)
+    
+    pygame.draw.rect(screen, button_color, button_rect, border_radius=10)
+    pygame.draw.rect(screen, (40, 80, 40), button_rect, width=2, border_radius=10)
+    
+    confirm_text = ai_settings.reward_font_small.render("确认", True, (255, 255, 255))
+    screen.blit(confirm_text, (
+        button_rect.centerx - confirm_text.get_width()//2,
+        button_rect.centery - confirm_text.get_height()//2
+    ))
+    
+    # 更新messageboard的按钮位置
+    messageboard.button_rect = button_rect
+
+def _wrap_text(text, font, max_width):
+    """将长文本自动换行"""
+    words = text.split(' ')
+    lines = []
+    current_line = []
+    
+    for word in words:
+        test_line = ' '.join(current_line + [word])
+        if font.size(test_line)[0] <= max_width:
+            current_line.append(word)
+        else:
+            lines.append(' '.join(current_line))
+            current_line = [word]
+    
+    if current_line:
+        lines.append(' '.join(current_line))
+    
+    return lines
 
 def check_events(ai_settings, gs, play_button, locations, messageboard, dice, pq, screen):
     """监视并相应鼠标和键盘事件"""
@@ -149,6 +250,26 @@ def check_click_events(ai_settings, gs, play_button, locations, messageboard, di
             elif gs.cur_event_index == "TRIGGER_SHOP":
                 print("-------------------------enter shop-------------------------")
                 gs.game_state = ai_settings.SHOP
+            elif gs.cur_event_index == "GET_RANDOM_QUBIT":
+                new_qubit = current_loc.get_random_qubit()
+                pq.cur_player.add_qubit(new_qubit)
+
+                # 准备详细消息
+                alpha_str = f"{new_qubit.alpha.real:.2f}"
+                beta_str = f"{new_qubit.beta.real:.2f}"
+                gs.reward_data = {
+                    "type": "qubit",
+                    "content": new_qubit
+                }
+                gs.game_state = ai_settings.GET_QUBIT
+            elif gs.cur_event_index == "GET_RANDOM_ITEM":
+                new_item = current_loc.get_random_item()
+                pq.cur_player.items.append(new_item)
+                gs.reward_data = {
+                    "type": "item",
+                    "content": new_item
+                }
+                gs.game_state = ai_settings.GET_ITEM
             elif isinstance(gs.cur_event_index, int): # 是普通事件索引
                 print("无事发生")
                 gs.game_state = ai_settings.END_ROUND
@@ -180,7 +301,11 @@ def check_click_events(ai_settings, gs, play_button, locations, messageboard, di
         if messageboard.shop_button_rect.collidepoint(mouse_x, mouse_y):
             gs.game_state = ai_settings.ROLL_DICE # 返回掷骰子状态
             # 这里可以添加商店逻辑，例如购买物品等
-
+    # 处理获得qubit/item逻辑
+    elif gs.game_state in (ai_settings.GET_QUBIT, ai_settings.GET_ITEM):
+        if messageboard.button_rect.collidepoint(mouse_x, mouse_y):
+            gs.game_state = ai_settings.ROLL_DICE
+            pq.next_round()
     elif gs.game_state == ai_settings.END_ROUND:
         if messageboard.button_rect.collidepoint(mouse_x, mouse_y):
             pq.next_round()
