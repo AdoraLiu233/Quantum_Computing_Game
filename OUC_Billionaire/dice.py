@@ -82,6 +82,8 @@ class Dice():
         # 骰子最后停下时的值
         # result = random.randint(0, 5)
         self.cur_dice = self.dice_side[final_index]
+        # self.cur_dice=self.dice_side[2]
         self.draw_dice(self.cur_dice)
         return final_index + 1
+        # return 2
         
