@@ -16,14 +16,15 @@ class Settings():
         self.MINI_GAME_STARTING = 3 # 准备进入小游戏
         self.MINI_GAME_ACTIVE = 4   # 小游戏正在进行
         self.SHOW_MINI_GAME_RESULT = 5 # 显示小游戏结果
-        self.SHOP=6 # 商店状态
-        self.MINIGAME_2=7
+        self.SHOP = 6 # 商店状态
         # 用于从其他模块安全访问地点实例列表 (例如传送功能)
         self.locations_instance_list = []
 
         # 小游戏列表
         self.minigame_configs={
-            "reaction_test": {"name": "反应力测试"},
+            "mini_game_2": {"name": "liuliu的小游戏"},
+            "quantum_bomb": {"name": "量子炸弹"},
+            "simon": {"name": "众里寻s千百度"},
         }
         
         # 设置游戏开始前的背景图片

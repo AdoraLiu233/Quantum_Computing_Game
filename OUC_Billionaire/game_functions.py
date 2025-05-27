@@ -13,11 +13,12 @@ from location import Gate
 from location import TechnologyBuilding
 from location import ArtMuseum
 from location import OfficePlace
-from mini_game_2 import run_minigame_2
+import mini_game_2
 import json
 from player import Player
 import os
-import mini_game_reaction
+import simon
+import quantum_bomb
 import math
 
 def draw_dashed_arrow(screen, color, start, end, dash_length=10, space_length=5, arrow_size=10):
@@ -70,8 +71,6 @@ def update_screen(ai_settings, screen, gs, play_button, locations,
         elif gs.game_state == ai_settings.SHOP:
             # 绘制商店界面
             screen.blit(ai_settings.shop_image, (0, 0))
-        elif gs.game_state == ai_settings.MINIGAME_2:#补全minigame_2
-            run_minigame_2(screen, gs,ai_settings)
             
         else:
             # 绘制地图等主游戏元素
@@ -94,7 +93,7 @@ def update_screen(ai_settings, screen, gs, play_button, locations,
 
     pygame.display.flip()
 
-def check_events(ai_settings, gs, play_button, locations, messageboard, dice, pq):
+def check_events(ai_settings, gs, play_button, locations, messageboard, dice, pq, screen):
     """监视并相应鼠标和键盘事件"""
     if gs.game_state == ai_settings.MINI_GAME_ACTIVE:
         # 小游戏通常有自己的事件处理循环。
@@ -113,12 +112,12 @@ def check_events(ai_settings, gs, play_button, locations, messageboard, dice, pq
             # 确保在调用 check_click_events 之前游戏是激活的
             if gs.game_active:
                  check_click_events(ai_settings, gs, play_button, locations,
-                                   messageboard, dice, pq)
+                                   messageboard, dice, pq, screen)
             elif play_button.img_rect.collidepoint(pygame.mouse.get_pos()): # 处理游戏未激活时点击开始按钮
                  check_click_events(ai_settings, gs, play_button, locations,
-                                   messageboard, dice, pq)
+                                   messageboard, dice, pq, screen)
 
-def check_click_events(ai_settings, gs, play_button, locations, messageboard, dice, pq):
+def check_click_events(ai_settings, gs, play_button, locations, messageboard, dice, pq, screen):
     """处理鼠标点击事件的函数"""
     # 定位鼠标点击位置
     mouse_x, mouse_y = pygame.mouse.get_pos()
@@ -150,8 +149,6 @@ def check_click_events(ai_settings, gs, play_button, locations, messageboard, di
             elif gs.cur_event_index == "TRIGGER_SHOP":
                 print("-------------------------enter shop-------------------------")
                 gs.game_state = ai_settings.SHOP
-            elif gs.cur_event_index == "TRIGGER_MINIGAME_2":
-                gs.game_state = ai_settings.MINIGAME_2
             elif isinstance(gs.cur_event_index, int): # 是普通事件索引
                 print("无事发生")
                 gs.game_state = ai_settings.END_ROUND
@@ -166,7 +163,7 @@ def check_click_events(ai_settings, gs, play_button, locations, messageboard, di
            messageboard.start_minigame_button_rect.collidepoint(mouse_x, mouse_y):
             gs.game_state = ai_settings.MINI_GAME_ACTIVE
             # 在这里，主游戏循环会将控制权（部分或全部）交给小游戏模块
-            # run_specific_mini_game(ai_settings, screen, gs, pq.cur_player) # 这是下一步要创建的
+            run_specific_mini_game(ai_settings, screen, gs, pq.cur_player)
         # 如果没有点击开始按钮，则停留在 MINI_GAME_STARTING 状态
 
     elif gs.game_state == ai_settings.SHOW_MINI_GAME_RESULT:
@@ -257,11 +254,12 @@ def run_specific_mini_game(ai_settings, screen, gs, current_player):
 
     game_result = {"message": f"小游戏 '{game_id_for_title}' 未实现或配置错误。", "effect": 0}
 
-    if gs.current_mini_game_id == "reaction_test": # Ensure this ID matches your locations_list.txt
-        game_result = mini_game_reaction.play(screen, ai_settings, current_player)
-    # # Add other mini-games here
-    elif gs.current_mini_game_id == "minigame_2":
-        game_result = run_minigame_2(screen,gs,ai_settings)
+    if gs.current_mini_game_id == "simon":
+        game_result = simon.play(screen, ai_settings, current_player)
+    elif gs.current_mini_game_id == "quantum_bomb":
+        game_result = quantum_bomb.play(screen, ai_settings, current_player)
+    elif gs.current_mini_game_id == "mini_game_2":
+        game_result = mini_game_2.play(screen, gs, ai_settings)
     else:
         print(f"Warning: Attempted to run unknown or unhandled minigame ID '{gs.current_mini_game_id}'")
         # Fallback message already set in game_result init

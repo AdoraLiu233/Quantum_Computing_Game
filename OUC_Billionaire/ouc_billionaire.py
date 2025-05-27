@@ -63,7 +63,7 @@ def run_game():
             # 并在结束后改变 gs.game_state
         else:
             # 正常游戏流程的事件处理
-            gf.check_events(ai_settings, gs, play_button, locations, messageboard, dice, player_que)
+            gf.check_events(ai_settings, gs, play_button, locations, messageboard, dice, player_que, screen)
 
         # 2. 屏幕更新 (只有在非小游戏活动状态下，主游戏才更新屏幕)
         if gs.game_state != ai_settings.MINI_GAME_ACTIVE:

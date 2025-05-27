@@ -72,18 +72,14 @@ class ScienceBuilding(Location):
     def __init__(self, ai_settings, screen, index, pos_x, pos_y, msg, mini_game_id=None):
         # 继承父类的构造方法
         super().__init__(ai_settings, screen, index, pos_x, pos_y, msg, mini_game_id)
-        self.mini_game_id=2
 
     def trigger_event(self, player):
         """触发事件"""
         # 随机事件的编号
-        # if self.mini_game_id:
-        #     return "TRIGGER_MINI_GAME"
-        # elif self.isShop:
-        #     return "TRIGGER_SHOP
-        return "TRIGGER_MINIGAME_2"
-        
-    
+        if self.mini_game_id:
+            return "TRIGGER_MINI_GAME"
+        elif self.isShop:
+            return "TRIGGER_SHOP"
     
 class Hall(Location):
     """大礼堂（继承地点类）"""

@@ -802,31 +802,56 @@ class SimonGame:
 
 # 游戏入口函数
 def play(screen, ai_settings, current_player):
-    """小游戏入口函数"""
-    game = SimonGame()
+    """小游戏入口函数 - 使用独立屏幕"""
+    
+    # 保存主游戏的屏幕信息
+    main_size = (ai_settings.screen_width, ai_settings.screen_height)
+    main_caption = pygame.display.get_caption()[0]
+    
+    # 创建独立的小游戏屏幕（使用您自己调整的尺寸）
+    game_screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
+    pygame.display.set_caption("Simon算法游戏")
+    
+    # 创建游戏实例，使用独立屏幕
+    game = SimonGame()  # 不传入外部屏幕，让它使用自己的
+    
     try:
-        game.run()
+        # 运行完整的游戏循环
+        while game.running:
+            game.handle_events()
+            game.draw()
+            game.clock.tick(60)
         
+        # 游戏结束，准备返回结果
         if game.game_won:
             cards = min(6, max(2, game.n + 1))
-            return {
+            result = {
                 "message": f"Simon算法挑战成功！获得{cards}张牌",
                 "effect": game.score // 50,
                 "cards_gained": cards,
                 "final_score": game.score
             }
         else:
-            return {
+            result = {
                 "message": "Simon算法挑战未完成",
                 "effect": game.score // 100,
                 "cards_gained": max(1, game.score // 200),
                 "final_score": game.score
             }
-    except:
-        return {
+    
+    except Exception as e:
+        print(f"Simon 游戏异常: {e}")
+        result = {
             "message": "游戏异常退出",
             "effect": 0
         }
+    
+    finally:
+        # 恢复主游戏屏幕（关键步骤！）
+        pygame.display.set_mode(main_size)
+        pygame.display.set_caption(main_caption)
+    
+    return result
 
 def main():
     """主函数 - 独立运行"""

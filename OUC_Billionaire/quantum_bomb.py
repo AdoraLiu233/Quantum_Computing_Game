@@ -1362,11 +1362,60 @@ class QuantumBombGame:
 
 def play(screen, ai_settings, current_player):
     """小游戏入口函数，与现有框架兼容"""
-    game = QuantumBombGame(screen, ai_settings, current_player)
-    return game.run()
+    
+    # 处理玩家对象，确保有必要的属性
+    # if not hasattr(current_player, 'qubits'):
+    #     # 如果玩家没有量子比特，创建默认的
+    #     current_player.qubits = [
+    #         Qubit(1, 0),  # |0>
+    #         Qubit(1/np.sqrt(2), 1/np.sqrt(2)),  # |+>
+    #         Qubit(0, 1),  # |1>
+    #         Qubit(1/np.sqrt(2), -1/np.sqrt(2)),  # |−>
+    #         Qubit(0.8, 0.6),  # 自定义态
+    #     ]
+    
+    current_player.qubits = [
+        Qubit(1, 0),  # |0>
+        Qubit(1/np.sqrt(2), 1/np.sqrt(2)),  # |+>
+        Qubit(0, 1),  # |1>
+        Qubit(1/np.sqrt(2), -1/np.sqrt(2)),  # |−>
+        Qubit(0.8, 0.6),  # 自定义态
+    ]
+    
+    if not hasattr(current_player, 'score'):
+        current_player.score = 100
+    
+    # 保存主游戏屏幕信息（如果需要独立屏幕）
+    main_size = screen.get_size()
+    main_caption = pygame.display.get_caption()[0]
+    
+    try:  
+        game_screen = pygame.display.set_mode((1000, 750))
+        pygame.display.set_caption("量子炸弹测试")
+        game = QuantumBombGame(game_screen, ai_settings, current_player)
+        result = game.run()
+        # 恢复主游戏屏幕
+        pygame.display.set_mode(main_size)
+        pygame.display.set_caption(main_caption)
+        
+        # 确保返回值格式正确
+        if isinstance(result, dict) and 'message' in result and 'effect' in result:
+            return result
+        else:
+            # 如果游戏返回的不是标准格式，转换一下
+            return {
+                "message": f"量子炸弹游戏完成！得分: {getattr(result, 'score', 0)}",
+                "effect": getattr(result, 'score', 0) // 10,  # 得分转换为金钱效果
+            }
+    
+    except Exception as e:
+        print(f"量子炸弹游戏异常: {e}")
+        return {
+            "message": "量子炸弹游戏异常退出",
+            "effect": 0
+        }
 
-
-# 测试用的独立运行函数
+# 测试用的独立运行函数 - 保持不变
 def main():
     pygame.init()
     screen = pygame.display.set_mode((1000, 750), pygame.RESIZABLE)

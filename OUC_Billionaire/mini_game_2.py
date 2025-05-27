@@ -3,7 +3,10 @@ import pygame
 import random
 from pygame.locals import *
 
-def run_minigame_2(screen,gs,ai_settings):
+def play(screen, gs, ai_settings):
+    main_size = screen.get_size()
+    main_caption = pygame.display.get_caption()[0]    
+    
     # 初始化 Pygame
     pygame.init()
     WIDTH, HEIGHT = 800, 850  # 增加 50px 给按钮
@@ -183,6 +186,27 @@ def run_minigame_2(screen,gs,ai_settings):
                         gs.game_state = ai_settings.END_ROUND  # 返回主游戏界面
                         return game_status
 
-
-    # pygame.quit()
+            elif game_status in ["Win", "Lose"]:
+                if event.type == KEYDOWN or event.type == MOUSEBUTTONDOWN:
+                    running = False
+    
+    pygame.display.set_mode(main_size)
+    pygame.display.set_caption(main_caption)
+    
+    # 返回标准格式的游戏结果
+    if game_status == "Win":
+        return {
+            "message": "量子迷宫挑战成功！找到了目标！",
+            "effect": 100  # 胜利奖励100金钱
+        }
+    elif game_status == "Lose":
+        return {
+            "message": "量子迷宫挑战失败，但获得了经验。",
+            "effect": 10   # 失败也有小奖励
+        }
+    else:
+        return {
+            "message": "量子迷宫游戏退出。",
+            "effect": 0    # 直接退出无奖励
+        }
 
