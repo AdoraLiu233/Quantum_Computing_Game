@@ -18,7 +18,10 @@ class Settings():
         self.MINI_GAME_ACTIVE = 4   # 小游戏正在进行
         self.SHOW_MINI_GAME_RESULT = 5 # 显示小游戏结果
         self.SHOP = 6 # 商店状态
-        self.GAME_OVER = 7
+        self.GAME_OVER = 9
+        self.GET_QUBIT=7 # 获得qubit
+        self.GET_ITEM=8 # 获得道具
+
         # 用于从其他模块安全访问地点实例列表 (例如传送功能)
         self.locations_instance_list = []
 
@@ -39,6 +42,14 @@ class Settings():
 
         #设置商店图片
         self.shop_image = pygame.image.load("images/shop.png")
+
+        # 设置获得qubit/道具时图片
+        self.get_qubit_item_image = pygame.image.load("images/get_qubit_item.png")
+        # 奖励信息字体设置
+        self.reward_font_large = pygame.font.Font('fonts/Noto_Sans_SC.ttf', 32)
+        self.reward_font_small = pygame.font.Font('fonts/Noto_Sans_SC.ttf', 24)
+        self.reward_text_color = (0, 0, 0)
+        self.reward_bg_color = (255, 255, 255, 200)  # 半透明白色
         
         # 设置玩家初始拥有的金钱
         self.player_init_money = 100
