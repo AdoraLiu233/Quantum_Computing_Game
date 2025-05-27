@@ -16,7 +16,9 @@ class Settings():
         self.MINI_GAME_STARTING = 3 # 准备进入小游戏
         self.MINI_GAME_ACTIVE = 4   # 小游戏正在进行
         self.SHOW_MINI_GAME_RESULT = 5 # 显示小游戏结果
-        self.SHOP = 6 # 商店状态
+        self.SHOP_ACTIVE = 6 # 商店状态
+        self.SHOP_ENTERING =7 # 进入商店状态
+        self.SHOP_RESULT=8 # 商店结果状态
         # 用于从其他模块安全访问地点实例列表 (例如传送功能)
         self.locations_instance_list = []
 
@@ -39,7 +41,7 @@ class Settings():
         self.shop_image = pygame.image.load("images/shop.png")
         
         # 设置玩家初始拥有的金钱
-        self.player_init_money = 100
+        self.player_init_money = 1000
         
         # 设置地点圆点半径大小和颜色
         self.circle_radius = 6
