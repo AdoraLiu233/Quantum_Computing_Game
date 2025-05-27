@@ -30,7 +30,7 @@ class UnlimitedMeasurementCard(Item):
         if not player.qubits:
             return "没有可测量的量子比特"
         
-        # 找出测量|1⟩概率最大的qubit
+        # 找出测量|1>概率最大的qubit
         best_qubit = max(player.qubits, key=lambda q: abs(q.beta)**2)
         index = player.qubits.index(best_qubit)
         outcome, score_change = player.measure_qubit(index)
@@ -96,7 +96,7 @@ class RotationCard(Item):
         player.qubits[qubit_index].apply_gate(gate)
         return (f"已将第{qubit_index}个量子比特旋转{np.degrees(angle)}度\n"
                 f"新状态: {player.qubits[qubit_index]}\n"
-                f"|1⟩概率: {abs(player.qubits[qubit_index].beta)**2:.2%}")
+                f"|1>概率: {abs(player.qubits[qubit_index].beta)**2:.2%}")
 
 class DoubleScoreCard(Item):
     """翻倍卡"""
@@ -131,10 +131,10 @@ class DuelCard(Item):
         
         # 生成随机量子计算问题
         problems = [
-            {"question": "H|0⟩等于什么?", "answer": "|+⟩"},
-            {"question": "X|1⟩等于什么?", "answer": "|0⟩"},
-            {"question": "CNOT|00⟩等于什么?", "answer": "|00⟩"},
-            {"question": "|+⟩态测量得到|1⟩的概率是多少?", "answer": "50%"},
+            {"question": "H|0>等于什么?", "answer": "|+>"},
+            {"question": "X|1>等于什么?", "answer": "|0>"},
+            {"question": "CNOT|00>等于什么?", "answer": "|00>"},
+            {"question": "|+>态测量得到|1>的概率是多少?", "answer": "50%"},
             {"question": "量子隐形传态需要多少经典比特?", "answer": "2"}
         ]
         problem = random.choice(problems)
@@ -239,4 +239,4 @@ class FixedRotationCard(Item):
         
         return (f"第{qubit_index}个量子比特被随机旋转{np.degrees(angle):.1f}度\n"
                 f"新状态: {player.qubits[qubit_index]}\n"
-                f"|1⟩概率: {abs(player.qubits[qubit_index].beta)**2:.2%}")
+                f"|1>概率: {abs(player.qubits[qubit_index].beta)**2:.2%}")
