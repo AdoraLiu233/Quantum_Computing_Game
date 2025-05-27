@@ -8,7 +8,7 @@ class Settings():
         self.screen_width = 1200
         self.screen_height = 1000  #660
         self.bg_color = (230, 230, 230)
-        self.max_rounds = 1 # 最大游戏轮数
+        self.max_rounds = 8 # 最大游戏轮数
         
         # 设置游戏统计信息
         self.ROLL_DICE = 0
