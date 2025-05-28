@@ -172,7 +172,7 @@ class Messageboard():
             self.button_rect = self.end_round_button.get_rect()
             self.button_rect.bottom = self.box_3.bottom - 10
             self.button_rect.right = self.box_3.right - 10
-            self.event_msg.append(self.font.render("无事发生。", True, self.text_color_2))
+            self.event_msg.append(self.font.render("事件处理完毕。", True, self.text_color_2))
 
         # --- 统一处理消息和按钮的位置 ---
         current_y = self.box_3.top + 10

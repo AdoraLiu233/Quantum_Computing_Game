@@ -415,6 +415,7 @@ def check_click_events(ai_settings, gs, play_button, locations, messageboard, di
                 gs.game_state = ai_settings.END_ROUND
     elif gs.game_state == ai_settings.SHOP_ENTERING:
         run_shop(ai_settings, screen, gs, pq.cur_player)
+        gs.game_state = ai_settings.END_ROUND
 
     elif gs.game_state == ai_settings.MINI_GAME_STARTING:
         # 这个状态下，通常 Messageboard 会显示 "点击开始小游戏" 或类似按钮
