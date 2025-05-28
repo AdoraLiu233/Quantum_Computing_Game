@@ -1,8 +1,6 @@
-import sys
 import numpy as np
 import random
 import pygame
-import math
 
 class Qubit:
     def __init__(self, alpha=1, beta=0):
@@ -20,7 +18,7 @@ class Qubit:
         return Qubit(self.alpha, self.beta)
     
     def apply_rotation(self, angle):
-        """应用Y旋转门"""
+        """应用旋转门"""
         cos_half = np.cos(angle/2)
         sin_half = np.sin(angle/2)
         gate = np.array([[cos_half, -sin_half], [sin_half, cos_half]])
@@ -48,7 +46,7 @@ class Qubit:
         return result
     
     def blackbox_test(self, has_bomb):
-        """黑箱炸弹检测 - 修复逻辑"""
+        """黑箱炸弹检测"""
         if not has_bomb:
             # 没有炸弹：量子比特保持原状态通过
             return False  # 不爆炸
@@ -88,7 +86,7 @@ class QuantumBombGame:
         self.qubit = None
         self.has_bomb = random.choice([True, False])
         self.operations = []
-        self.rotation_cards = 10
+        self.rotation_cards = 15
         self.exploded = False
         self.judgment = None
         self.angle_input = ""
@@ -127,7 +125,7 @@ class QuantumBombGame:
         if self.show_tutorial:
             if self.get_rect(400, 50, 80, 30).collidepoint(pos):
                 self.show_tutorial = False
-            return True  # 修复：确保返回布尔值
+            return True
         
         # 工具栏按钮
         if self.get_rect(20, 20, 60, 25).collidepoint(pos):
@@ -230,11 +228,9 @@ class QuantumBombGame:
         return pygame.Rect(x, y, w, h)
     
     def get_qubit_rects(self):
-        # 修复界面：增大卡片尺寸，调整布局
         return [pygame.Rect(50 + i * 140, 180, 120, 100) for i in range(len(self.player.qubits))]
     
     def get_operation_buttons(self):
-        # 调整按钮位置，避免与量子比特卡片重叠
         return {
             'rotate': self.get_rect(50, 320, 120, 35),
             'std_measure': self.get_rect(180, 320, 120, 35),
@@ -259,7 +255,7 @@ class QuantumBombGame:
         title = self.font.render("量子炸弹检测游戏", True, self.colors['black'])
         self.screen.blit(title, (20, 60))
         
-        info = self.small_font.render(f"积分: {self.player.score} | 旋转卡: {self.rotation_cards}", True, self.colors['black'])
+        info = self.small_font.render(f"积分: {self.player.score} | 旋转机会: {self.rotation_cards}", True, self.colors['black'])
         self.screen.blit(info, (400, 65))
         
         # 工具栏
@@ -289,9 +285,8 @@ class QuantumBombGame:
             pygame.draw.rect(self.screen, color, rect)
             pygame.draw.rect(self.screen, self.colors['black'], rect, 2)
             
-            # 修复显示：更好的文字布局和间距
             text1 = self.small_font.render(f"量子比特 #{i}", True, self.colors['white'])
-            text2 = self.small_font.render(f"|1>概率:", True, self.colors['white'])
+            text2 = self.small_font.render(f"测出 1 概率:", True, self.colors['white'])
             text3 = self.small_font.render(f"{prob_1:.1%}", True, self.colors['white'])
             
             # 垂直居中的文字布局
@@ -303,7 +298,6 @@ class QuantumBombGame:
             self.screen.blit(text3, (rect.x + 8, y_start + line_height * 2))
     
     def draw_operate_phase(self):
-        # 当前状态 - 调整位置
         state_text = f"当前状态: {self.display_state}"
         state_surf = self.small_font.render(state_text, True, self.colors['black'])
         self.screen.blit(state_surf, (50, 290))
@@ -389,26 +383,29 @@ class QuantumBombGame:
         
         if self.tutorial_type == 'rules':
             content = [
-                "1. 选择量子比特进行炸弹检测",
-                "2. 可用操作:",
-                "   • 旋转: 改变量子态(10张卡)",
-                "   • 标准基测量: 直接知道|0>或|1>(-20分)",
-                "   • ±基测量: 知道|+>或|->(-10分)",
-                "   • 黑箱检测: 免费但有爆炸风险",
-                "3. 根据操作结果判断是否有炸弹",
-                "4. 正确识别获得奖励，错误或爆炸受惩罚"
+                "1. 炸弹机制:",
+                "   • 有炸弹: 黑箱对量子比特进行标准基测量",
+                "   • 测量到|1>则爆炸, 测量到|0>则安全",
+                "   • 无炸弹: 量子比特保持原状态通过",
+                "2. 操作说明:",
+                "   • 旋转: 绕Y轴旋转改变|0>和|1>的概率幅",
+                "   • 标准基测量: 强制坍缩到|0>或|1>(-20分)并得知测量结果",
+                "   • ±基测量: 在叠加基(|+>, |->)下测量(-10分)",
+                "   • 黑箱检测: 炸弹检测, 有风险, 免费",
+                "3. 目标: 在不引爆炸弹前提下判断其存在性"
             ]
         else:
             content = [
-                "基础策略:",
-                "• 先用±基测量了解大概状态",
-                "• 根据需要进行小角度旋转",
-                "• 最后黑箱检测",
+                "基础策略(50%成功率):",
+                "• 发送|+>态进行±基测量",
+                "• 哑弹: 输出|+>, 真炸弹: 50%爆炸或输出|+>/|->. 可以通过测量获得一定信息。",
                 "",
-                "高级策略:",
-                "• 多次小角度旋转比一次大角度安全",
-                "• 旋转90度可将|0>变为|+>",
-                "• 合理平衡测量成本与信息价值"
+                "高效策略(理论100%成功率):",
+                "• 从|0>开始,每次旋转小角度ε后黑箱检测",
+                "• 重复N=π/ε次,爆炸概率仅为O(ε)",
+                "• 哑弹: 最终旋转至|1>可检测到",
+                "• 真炸弹: 量子Zeno效应锁定在|0>态",
+                "• 数学证明: P(爆炸)≤N·sin²(ε/2)=O(ε)"
             ]
         
         for i, line in enumerate(content):

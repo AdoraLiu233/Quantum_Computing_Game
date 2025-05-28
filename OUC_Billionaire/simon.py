@@ -26,9 +26,6 @@ LIGHT_GRAY = (211, 211, 211)
 DARK_GRAY = (64, 64, 64)
 NAVY = (25, 25, 112)
 
-## 再检查一下H的实现逻辑
-## 实际中是可能检测出y = 0的吗？
-## 跟踪一下Simon代码执行流程以改进输出
 ## 确认一下不同量子数应用测量数等于几比较好：不能让玩家有机会枚举了（  但是也要给oracle的随机留够机会
 
 # 字体初始化
@@ -55,12 +52,16 @@ class QuantumState:
         
     def set_input(self, x: int):
         """设置输入状态"""
+        print(f"DEBUG: 设置输入状态 x = {bin(x)[2:].zfill(self.n_qubits)}")
         self.register_a = {x: 1.0}
         self.register_b = {0: 1.0}
         self.is_entangled = False
         
     def apply_hadamard_a(self):
         """对寄存器A应用H变换"""
+        print(f"DEBUG: 对寄存器A应用Hadamard变换")
+        print(f"DEBUG: 变换前 register_a = {self.register_a}")
+        
         new_register = {}
         norm_factor = 1.0 / math.sqrt(2 ** self.n_qubits)
 
@@ -80,10 +81,15 @@ class QuantumState:
     
         self.register_a = new_register
         self.had_final_h = True
-        ## 叠加态输入应该在游戏里有更多的说明，要不然看起来莫名其妙的
+        print(f"DEBUG: 变换后 register_a = {new_register}")
+        print(f"DEBUG: Hadamard变换完成，had_final_h = {self.had_final_h}")
         
     def apply_oracle(self, oracle_func: Dict[int, int]):
         """应用Oracle"""
+        print(f"DEBUG: 应用Oracle")
+        print(f"DEBUG: Oracle前 register_a = {self.register_a}")
+        print(f"DEBUG: Oracle前 register_b = {self.register_b}")
+        
         new_state = {}
         for x, amp_a in self.register_a.items():
             for y, amp_b in self.register_b.items():
@@ -91,13 +97,17 @@ class QuantumState:
                 new_y = y ^ fx
                 key = (x, new_y)
                 new_state[key] = new_state.get(key, 0) + amp_a * amp_b
+                print(f"DEBUG: Oracle映射 x={bin(x)[2:].zfill(self.n_qubits)} -> f(x)={bin(fx)[2:].zfill(self.n_qubits)}, y={bin(y)[2:].zfill(self.n_qubits)} -> new_y={bin(new_y)[2:].zfill(self.n_qubits)}")
         
         self.entangled_state = new_state
         self.is_entangled = True
+        print(f"DEBUG: Oracle后纠缠态 = {new_state}")
         
     def measure_b(self):
         """测量寄存器B"""
+        print(f"DEBUG: 开始测量寄存器B")
         if not self.is_entangled:
+            print(f"DEBUG: 未纠缠状态，返回B=0")
             return 0, self.register_a
             
         # 计算B的概率分布
@@ -105,10 +115,14 @@ class QuantumState:
         for (x, b), amplitude in self.entangled_state.items():
             b_probs[b] = b_probs.get(b, 0) + abs(amplitude) ** 2
             
+        print(f"DEBUG: B寄存器概率分布 = {b_probs}")
+        
         # 随机选择测量结果
         b_values = list(b_probs.keys())
         probabilities = list(b_probs.values())
         measured_b = random.choices(b_values, weights=probabilities)[0]
+        
+        print(f"DEBUG: 测量得到B = {bin(measured_b)[2:].zfill(self.n_qubits)}")
         
         # 坍缩寄存器A
         collapsed_a = {}
@@ -117,6 +131,7 @@ class QuantumState:
             if b == measured_b:
                 collapsed_a[x] = amplitude
                 total_prob += abs(amplitude) ** 2
+                print(f"DEBUG: A寄存器坍缩包含状态 x={bin(x)[2:].zfill(self.n_qubits)}, amplitude={amplitude}")
                 
         # 归一化
         if total_prob > 0:
@@ -124,19 +139,26 @@ class QuantumState:
             for x in collapsed_a:
                 collapsed_a[x] *= norm_factor
         
+        print(f"DEBUG: 坍缩后A寄存器 = {collapsed_a}")
+        
         self.register_a = collapsed_a
         self.is_entangled = False
         return measured_b, collapsed_a
         
     def measure_a(self):
         """测量寄存器A"""
+        print(f"DEBUG: 开始测量寄存器A")
         if not self.register_a:
+            print(f"DEBUG: A寄存器为空，返回0")
             return 0
             
         probs = {x: abs(amp)**2 for x, amp in self.register_a.items()}
+        print(f"DEBUG: A寄存器概率分布 = {probs}")
         x_values = list(probs.keys())
         probabilities = list(probs.values())
-        return random.choices(x_values, weights=probabilities)[0]
+        result = random.choices(x_values, weights=probabilities)[0]
+        print(f"DEBUG: 测量得到A = {bin(result)[2:].zfill(self.n_qubits)}")
+        return result
 
 def gf2_rank(matrix):
     """计算GF(2)矩阵的秩"""
@@ -245,6 +267,10 @@ class SimonGame:
         self.max_queries = self.n * 2
         self.game_won = False
         
+        # 测量结果记录
+        self.measurement_results = []  # 存储所有测量结果
+        self.measurement_round = 0     # 当前测量轮次
+        
         # 用户输入
         self.custom_input = ""
         self.input_active = False
@@ -269,7 +295,8 @@ class SimonGame:
     def init_new_game(self):
         """初始化新游戏"""
         self.s = random.randint(1, (1 << self.n) - 1)
-        print(f"Debug: 隐藏的s = {bin(self.s)[2:].zfill(self.n)}")
+        print(f"DEBUG: ===== 新游戏开始 =====")
+        print(f"DEBUG: 隐藏的s = {bin(self.s)[2:].zfill(self.n)} (十进制: {self.s})")
         
         # 生成Simon Oracle
         self.oracle_func = {}
@@ -288,6 +315,10 @@ class SimonGame:
                 processed.add(x)
                 processed.add(x_xor_s)
         
+        print(f"DEBUG: Oracle函数:")
+        for x, fx in sorted(self.oracle_func.items()):
+            print(f"DEBUG:   f({bin(x)[2:].zfill(self.n)}) = {bin(fx)[2:].zfill(self.n)}")
+        
         # 重置状态
         self.quantum_state = QuantumState(self.n)
         self.orthogonal_vectors = []
@@ -299,8 +330,12 @@ class SimonGame:
         self.answer_input = ""
         self.answer_input_active = False
         
+        # 重置测量结果
+        self.measurement_results = []
+        self.measurement_round = 0
+        
         self.add_message(f"新游戏开始！n={self.n}", GREEN)
-        self.add_message("选择输入方式开始Simon算法", BLUE)
+        self.add_message("欢迎自由进行您的探索！", BLUE)
         
     def add_message(self, text, color=NAVY):
         """添加消息"""
@@ -319,7 +354,8 @@ class SimonGame:
         self.quantum_state.apply_hadamard_a()
         
         binary_str = "0" * self.n
-        self.add_message(f"创建叠加态：|{binary_str}> -> 均匀叠加态，消耗20积分", GREEN)
+        self.add_message(f"创建叠加态：H^⊗n|0> = Σ|x>，消耗20积分", GREEN)
+        print(f"DEBUG: 创建叠加态完成")
     
     def use_custom_input(self, x):
         """使用自定义输入"""
@@ -332,7 +368,8 @@ class SimonGame:
         self.quantum_state.set_input(x)
         
         x_str = bin(x)[2:].zfill(self.n)
-        self.add_message(f"设置输入：|{x_str}>，消耗5积分", GREEN)
+        self.add_message(f"创建纠缠态：|{x_str}>，消耗5积分", GREEN)
+        print(f"DEBUG: 创建自定义输入完成")
     
     def query_oracle(self):
         """查询Oracle"""
@@ -348,6 +385,7 @@ class SimonGame:
         self.score -= cost
         self.oracle_queries += 1
         
+        print(f"DEBUG: ----- Oracle查询 #{self.oracle_queries} -----")
         self.quantum_state.apply_oracle(self.oracle_func)
         self.add_message(f"Oracle查询 #{self.oracle_queries}", GREEN)
         self.add_message("应用：|x>|0> -> |x>|f(x)>，消耗25积分", BLUE)
@@ -360,11 +398,25 @@ class SimonGame:
             return
             
         self.score -= cost
+        print(f"DEBUG: ----- 测量寄存器B -----")
         measured_b, collapsed_a = self.quantum_state.measure_b()
         
         b_str = bin(measured_b)[2:].zfill(self.n)
-        self.add_message(f"测量B结果：|{b_str}>，消耗10积分", GREEN)
+        self.add_message(f"测量B结果：({b_str})，消耗10积分", GREEN)
         
+        # 记录测量结果（只要不是全0就记录）
+        if measured_b != 0:
+            self.measurement_round += 1
+            result_entry = {
+                'type': 'B',
+                'round': self.measurement_round,
+                'value': measured_b,
+                'oracle_query': self.oracle_queries
+            }
+            self.measurement_results.append(result_entry)
+            print(f"DEBUG: 记录B测量结果: B{self.measurement_round} = {b_str}")
+        else:
+            print(f"DEBUG: B测量结果为0，不记录")
     
     def apply_final_h(self):
         """应用最终H变换"""
@@ -374,6 +426,7 @@ class SimonGame:
             return
             
         self.score -= cost
+        print(f"DEBUG: ----- 应用最终Hadamard变换 -----")
         self.quantum_state.apply_hadamard_a()
         self.add_message("对A应用H变换，消耗15积分", GREEN)
     
@@ -385,6 +438,8 @@ class SimonGame:
             return
             
         self.score -= cost
+        
+        print(f"DEBUG: ----- 测量寄存器A -----")
         
         # 计算每个状态的概率（振幅的模平方）
         probs = {}
@@ -410,17 +465,35 @@ class SimonGame:
         had_final_h = self.quantum_state.had_final_h
         
         y_str = bin(measured_y)[2:].zfill(self.n)
-        self.add_message(f"测量A：|{y_str}>", GREEN)
+        self.add_message(f"测量A得到：({y_str})", GREEN)
         
         # 验证正交性
         dot_product = bin(self.s & measured_y).count('1') % 2
         is_orthogonal = (dot_product == 0)
         
+        print(f"DEBUG: 测量结果 y = {y_str}, s·y = {dot_product} (mod 2), 正交性: {is_orthogonal}")
+        
         self.add_message(f"s·y = {dot_product} (mod 2)", GREEN if is_orthogonal else RED)
+        
+        # 记录测量结果（只要不是全0就记录）
+        if measured_y != 0:
+            self.measurement_round += 1
+            result_entry = {
+                'type': 'A',
+                'round': self.measurement_round,
+                'value': measured_y,
+                'oracle_query': self.oracle_queries,
+                'is_orthogonal': is_orthogonal
+            }
+            self.measurement_results.append(result_entry)
+            print(f"DEBUG: 记录A测量结果: A{self.measurement_round} = {y_str}")
+        else:
+            print(f"DEBUG: A测量结果为0，不记录")
         
         # 如果是正交且非零向量，加入向量集合
         if is_orthogonal and measured_y != 0:
             self.orthogonal_vectors.append(measured_y)
+            print(f"DEBUG: 添加正交向量到集合: {y_str}")
         elif measured_y == 0:
             self.add_message("测量结果为0，无信息量", GRAY)
         
@@ -433,53 +506,22 @@ class SimonGame:
         # 重置量子态
         self.quantum_state = QuantumState(self.n)
 
-    # 计算线性无关向量数量用于按钮启用判断
+    # 计算线性无关向量数量用于按钮启用判断 - 删除此功能
     def get_independent_vector_count(self):
-        """获取线性无关向量数量"""
-        unique_vectors = list(set(self.orthogonal_vectors))
-        if not unique_vectors:
-            return 0
-        
-        matrix = []
-        for v in unique_vectors:
-            row = [(v >> (self.n-1-i)) & 1 for i in range(self.n)]
-            matrix.append(row)
-        
-        return gf2_rank(matrix)
+        """获取线性无关向量数量 - 已禁用"""
+        return 0  # 始终返回0，禁用自动求解按钮
 
     def auto_solve(self):
         """自动求解"""
-
-        # 检查线性无关性而不是简单的数量
-        unique_vectors = list(set(self.orthogonal_vectors))
-        if not unique_vectors:
-            self.add_message("没有有效向量！", RED)
-            return
-            
-        matrix = []
-        for v in unique_vectors:
-            row = [(v >> (self.n-1-i)) & 1 for i in range(self.n)]
-            matrix.append(row)
-        
-        rank = gf2_rank(matrix)
-        
-        if rank < self.n - 1:
-            self.add_message(f"需要{self.n-1}个线性无关向量！", RED)
-            self.add_message(f"当前有{rank}个线性无关向量", ORANGE)
-            return
-            
-        cost = 50
-        if self.score < cost:
-            self.add_message("积分不足！", RED)
-            return
-            
-        self.score -= cost
-        solved_s = solve_simon(self.orthogonal_vectors, self.n)
-        
-        self.end_game(solved_s)
+        # 删除自动求解功能
+        self.add_message("自动求解功能已禁用，请手动分析结果", ORANGE)
+        return
     
     def manual_solve(self, guess_s):
         """手动求解"""
+        print(f"DEBUG: ----- 手动求解 -----")
+        print(f"DEBUG: 玩家猜测: {bin(guess_s)[2:].zfill(self.n) if guess_s else 'None'}")
+        print(f"DEBUG: 正确答案: {bin(self.s)[2:].zfill(self.n)}")
         self.end_game(guess_s)
     
     def end_game(self, solved_s):
@@ -490,12 +532,14 @@ class SimonGame:
             bonus = (self.max_queries - self.oracle_queries) * 30
             self.score += bonus + 100
             
+            print(f"DEBUG: 游戏胜利! s = {s_str}")
             self.add_message("恭喜！找到隐藏字符串！", GOLD)
             self.add_message(f"s = {s_str}", GREEN)
             self.add_message(f"效率奖励：{bonus}积分", GOLD)
         else:
             s_str = bin(self.s)[2:].zfill(self.n)
             guess_str = bin(solved_s)[2:].zfill(self.n) if solved_s else "无效"
+            print(f"DEBUG: 游戏失败! 正确答案: {s_str}, 玩家答案: {guess_str}")
             self.add_message("答案错误！", RED)
             self.add_message(f"你的答案：{guess_str}", RED)
             self.add_message(f"正确答案：{s_str}", GREEN)
@@ -504,11 +548,15 @@ class SimonGame:
         """购买算法提示"""
         if self.hint_purchased:
             # 显示提示
-            self.add_message("Simon算法提示：", BLUE)
-            self.add_message("1.选择输入->2.Oracle查询->", GREEN)
-            self.add_message("3.测量后寄存器B->4.应用H->5.测量前寄存器A", GREEN)
-            self.add_message("叠加态输入可能一次获得多个正交向量", GREEN)
-            self.add_message("自定义输入更精确但需多次尝试", GREEN)
+            self.add_message("策略提示：", BLUE)
+            self.add_message("1，创建均匀叠加态（2^n种可能的输入）", GREEN)
+            self.add_message("2，使用Oracle，得到纠缠态：Σ|x>|f(x)>", GREEN)
+            self.add_message("3，测量寄存器B，随机得到某个函数值y = f(x)", GREEN)
+            self.add_message("此时寄存器A坍缩为：(1/√2)(|x> + |x⊕s>)", GREEN)
+            self.add_message("4，Hadamard变换——利用量子干涉，", GREEN)
+            self.add_message("使垂直于s的向量z测出概率增强", GREEN)
+            self.add_message("第5步：测量得到向量y，满足s·y = 0 (mod 2)", GREEN)
+            self.add_message("收集n-1个线性无关的正交向量可解出s", GREEN)
             return
             
         cost = 80
@@ -520,10 +568,16 @@ class SimonGame:
         self.hint_purchased = True
         
         self.add_message("算法提示已购买！可重复查看", BLUE)
-        self.add_message("1.选择输入->2.Oracle查询->", GREEN)
-        self.add_message("3.测量后寄存器B->4.应用H->5.测量前寄存器A", GREEN)
-        self.add_message("叠加态输入可能一次获得多个正交向量", GREEN)
-        self.add_message("自定义输入更精确但需多次尝试", GREEN)
+        self.add_message("Simon算法能以O(n)次查询，解决需要", BLUE)
+        self.add_message("经典算法Ω(√(2^n))次查询的问题，展现了量子优势。", BLUE)
+        self.add_message("1，创建均匀叠加态（2^n种可能的输入）", GREEN)
+        self.add_message("2，使用Oracle，得到纠缠态：Σ|x>|f(x)>", GREEN)
+        self.add_message("3，测量寄存器B，随机得到某个函数值y = f(x)", GREEN)
+        self.add_message("此时寄存器A坍缩为：(1/√2)(|x> + |x⊕s>)", GREEN)
+        self.add_message("4，Hadamard变换——利用量子干涉，", GREEN)
+        self.add_message("使垂直于s的向量z测出概率增强", GREEN)
+        self.add_message("第5步：测量得到向量y，满足s·y = 0 (mod 2)", GREEN)
+        self.add_message("收集n-1个线性无关的正交向量可解出s", GREEN)
     
     def handle_events(self):
         """处理事件"""
@@ -536,6 +590,7 @@ class SimonGame:
                 
                 for btn_name, rect in self.button_rects.items():
                     if rect.collidepoint(mouse_x, mouse_y):
+                        print(f"DEBUG: 点击按钮: {btn_name}")
                         self.handle_button_click(btn_name)
                         
             elif event.type == pygame.KEYDOWN:
@@ -595,7 +650,8 @@ class SimonGame:
         elif btn_name == "measure_a":
             self.measure_a()
         elif btn_name == "auto_solve":
-            self.auto_solve()
+            # 自动求解功能已禁用
+            self.add_message("请手动分析测量结果", ORANGE)
         elif btn_name == "manual_solve":
             self.answer_input_active = True
             self.add_message(f"输入{self.n}位二进制答案后按回车：", BLUE)
@@ -630,10 +686,10 @@ class SimonGame:
         # 输入选择
         draw_panel(self.screen, 20, 160, 250, 160, "选择输入")
         self.button_rects["superposition"] = draw_button(self.screen, 30, 190, 230, 30, 
-                                                       "叠加态输入 (20积分)", GREEN, 
+                                                       "获得叠加态 (20积分)", GREEN, 
                                                        self.score >= 20 and not self.game_won)
         self.button_rects["custom"] = draw_button(self.screen, 30, 225, 230, 30, 
-                                                "自定义输入 (5积分)", BLUE, 
+                                                "获得自定义纠缠态 (5积分)", BLUE, 
                                                 self.score >= 5 and not self.game_won)
         
         # 显示输入状态
@@ -658,7 +714,7 @@ class SimonGame:
         
         y_pos = 370
         steps = [
-            ("oracle", "Oracle查询 (25积分)", GREEN),
+            ("oracle", "使用Oracle (25积分)", GREEN),
             ("measure_b", "测量后寄存器B (10积分)", PURPLE),
             ("final_h", "对前寄存器使用H变换 (15积分)", ORANGE),
             ("measure_a", "测量前寄存器A (10积分)", RED)
@@ -674,11 +730,12 @@ class SimonGame:
         
         # 求解工具 - 位置下移
         draw_panel(self.screen, 20, 560, 250, 120, "求解工具")
-        independent_count = self.get_independent_vector_count()
-        self.button_rects["auto_solve"] = draw_button(self.screen, 30, 590, 110, 30, 
-                                           "自动求解 (50积分)", GOLD, 
-                                           self.score >= 50 and independent_count >= self.n-1 and not self.game_won)
-        self.button_rects["manual_solve"] = draw_button(self.screen, 150, 590, 110, 30, 
+        # 删除自动求解按钮
+        # independent_count = self.get_independent_vector_count()
+        # self.button_rects["auto_solve"] = draw_button(self.screen, 30, 590, 110, 30, 
+        #                                    "自动求解 (50积分)", GOLD, 
+        #                                    self.score >= 50 and independent_count >= self.n-1 and not self.game_won)
+        self.button_rects["manual_solve"] = draw_button(self.screen, 30, 590, 230, 30, 
                                                "手动输入答案", BLUE, not self.game_won)
         
         # 显示答案输入框
@@ -729,28 +786,43 @@ class SimonGame:
             "测量结果:"
         ]
         
-        for i, v in enumerate(self.orthogonal_vectors):
-            v_str = bin(v)[2:].zfill(self.n)
-            # 验证显示
-            dot_check = "√" if bin(self.s & v).count('1') % 2 == 0 else "×"
-            status_lines.append(f"y{i+1}: {v_str} {dot_check}")
+        # 显示所有测量结果（按轮次显示）
+        for result in self.measurement_results:
+            result_type = result['type']
+            round_num = result['round']
+            value = result['value']
+            oracle_query = result['oracle_query']
+            value_str = bin(value)[2:].zfill(self.n)
+            
+            # 简化显示，不显示正交性检查
+            status_lines.append(f"{result_type}{round_num}: {value_str} (Oracle#{oracle_query})")
         
-        if not self.orthogonal_vectors:
-            status_lines.append("(暂无有效向量)")
+        if not self.measurement_results:
+            status_lines.append("(暂无测量结果)")
         
-        if self.orthogonal_vectors:
-            # 检查线性无关性
-            unique_vectors = list(set(self.orthogonal_vectors))
-            matrix = []
-            for v in unique_vectors:
-                row = [(v >> (self.n-1-i)) & 1 for i in range(self.n)]
-                matrix.append(row)
-            rank = gf2_rank(matrix)
-            status_lines.extend([
-                "",
-                f"线性无关向量: {rank}/{self.n-1}",
-                "√ 可以尝试求解！" if rank >= self.n-1 else "还需要更多向量"
-            ])
+        # 删除正交向量和线性无关性显示
+        # if self.orthogonal_vectors:
+        #     status_lines.append("")
+        #     status_lines.append("有效正交向量:")
+        #     for i, v in enumerate(self.orthogonal_vectors):
+        #         v_str = bin(v)[2:].zfill(self.n)
+        #         # 验证显示
+        #         dot_check = "√" if bin(self.s & v).count('1') % 2 == 0 else "×"
+        #         status_lines.append(f"v{i+1}: {v_str} {dot_check}")
+        
+        # if self.orthogonal_vectors:
+        #     # 检查线性无关性
+        #     unique_vectors = list(set(self.orthogonal_vectors))
+        #     matrix = []
+        #     for v in unique_vectors:
+        #         row = [(v >> (self.n-1-i)) & 1 for i in range(self.n)]
+        #         matrix.append(row)
+        #     rank = gf2_rank(matrix)
+        #     status_lines.extend([
+        #         "",
+        #         f"线性无关向量: {rank}/{self.n-1}",
+        #         "√ 可以尝试求解！" if rank >= self.n-1 else "还需要更多向量"
+        #     ])
         
         if self.game_won:
             status_lines.extend([
@@ -767,17 +839,18 @@ class SimonGame:
             y_pos += 18
         
         # 操作指南
-        draw_panel(self.screen, 290, 600, 890, 160, "游戏指南")
+        draw_panel(self.screen, 290, 600, 890, 180, "游戏指南")
         
         guide_lines = [
             "背景故事: 你是一名量子密码学家，发现了一个神秘的黑盒Oracle函数f(x)。",
             "已知线索: f(x) = f(x⊕s)，其中s是隐藏的密钥。你的任务是找出这个密钥！",
+            "",
             "操作说明:",
-            "量子并行: 同时创建所有输入状态，效率高但成本大",
-            "自定义输入: 精确控制输入状态，成本低但需要策略",
-            "Oracle查询: 让黑盒处理你的量子态，获得关键信息",
+            "创建叠加态：H^⊗n|0> = Σ|x>，同时准备所有2^n种输入",
+            "使用Oracle: 应用：|x>|0> -> |x>|f(x)>，其中x是输入",
             "测量操作: 观察量子态，每次测量都会改变系统状态",
-            "H变换: 量子干涉魔法，能增强有用信息的概率",
+            "H变换: 对寄存器A中量子比特采用H门，",
+            "效果是H^⊗n|x> = (1/√2^n) ∑_{z∈{0,1}^n} (-1)^(x·z) |z>",
         ]
         
         y_pos = 630
