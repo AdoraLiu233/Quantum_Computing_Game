@@ -71,6 +71,7 @@ class StealCard(Item):
 class RotationCard(Item):
     """任意旋转卡(精确控制版)"""
     def __init__(self):
+        # 调用父类的构造函数，传入三个参数
         super().__init__(
             "精确旋转卡", 
             "good", 

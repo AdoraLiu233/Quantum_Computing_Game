@@ -22,6 +22,8 @@ class Player():
         self.score = 0
         # 玩家道具
         self.items = []
+        # 玩家的门
+        self.gates = []
 
         # 量子属性
         self.qubits = []  # 存储玩家拥有的Qubit对象列表
@@ -54,6 +56,7 @@ class Player():
         """向玩家集合中添加一个量子比特"""
         if qubit is None:
             qubit = Qubit()  # 默认|0>态
+        qubit._normalize()
         self.qubits.append(qubit)
         self.qubit_count += 1
 
@@ -83,6 +86,13 @@ class Player():
             'qubit_states': [str(qubit) for qubit in self.qubits]
         }
         return info
+    
+    def add_item(self, item):
+        """向玩家集合中添加一个道具"""
+        self.items.append(item)
+
+    def add_gate(self, gate):
+        self.gates.append(gate)
     
     def use_item(self, item_index, target_player=None, **kwargs):
         """使用道具的增强方法，支持额外参数"""
