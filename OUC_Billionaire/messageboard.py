@@ -2,6 +2,7 @@
 
 import pygame
 import os
+from gate import XGate,ZGate,HGate
 
 class Messageboard():
     """显示游戏相关信息的类"""
@@ -240,11 +241,12 @@ class Messageboard():
             120, 40
         )
 
-    def update_inventory_message(self, player, selecting_qubit=False, steal_mode=None, steal_target=None):
+    def update_inventory_message(self, player, selecting_qubit=False, selecting_gate=False, steal_mode=None, steal_target=None):
         """只更新数据，不进行绘制"""
         self.item_buttons = []
         self.qubit_buttons = []
         self.inventory_msgs = []
+        self.gate_buttons = []  # 新增：量子门按钮
         
         # 背包标题
         title = f"{player.player_name}的背包 (积分: {player.score})"
@@ -255,17 +257,25 @@ class Messageboard():
         
         # 道具区域标题
         self.inventory_msgs.append(self.font.render("道具:", True, (60, 60, 60)))
+
+        # 量子门区域标题 (新增)
+        self.inventory_msgs.append(self.font.render("量子门:", True, (60, 60, 60)))
         
         # 存储qubit按钮信息
-        for i, qubit in enumerate(player.qubits[:3]):
+        for i, qubit in enumerate(player.qubits[:4]):
             self.qubit_buttons.append((i, None))  # rect在draw时确定
         
         # 存储道具按钮信息
-        for i, item in enumerate(player.items[:3]):
+        for i, item in enumerate(player.items[:4]):
             self.item_buttons.append((item, None))  # rect在draw时确定
         
+        # 存储量子门按钮信息
+        for i, item in enumerate(player.gates[:4]):
+            self.gate_buttons.append((item, None))  # rect在draw时确定
+
         # 操作按钮状态
         self.selecting_qubit = selecting_qubit
+        self.selecting_gate = selecting_gate  # 新增：选择量子门状态
 
         # 抢夺模式下的特殊显示
         if steal_mode == "select_player":
@@ -280,9 +290,9 @@ class Messageboard():
         """集中处理所有绘制逻辑"""
         # 背包主窗口 (居中)
         inventory_rect = pygame.Rect(
-            (self.screen.get_width() - 800) // 2,
+            (self.screen.get_width() - 1000) // 2,
             (self.screen.get_height() - 700) // 2,
-            800, 700
+            1000, 700
         )
         pygame.draw.rect(self.screen, (240, 240, 245), inventory_rect, border_radius=15)
         pygame.draw.rect(self.screen, (50, 50, 70), inventory_rect, width=3, border_radius=15)
@@ -300,10 +310,10 @@ class Messageboard():
         
         # 量子比特容器
         qubit_container = pygame.Rect(
-            inventory_rect.left + 40,
+            inventory_rect.left + 20,
             current_y,
-            inventory_rect.width - 80,
-            180
+            inventory_rect.width - 40,
+            100
         )
         pygame.draw.rect(self.screen, (220, 240, 255), qubit_container, border_radius=10)
         pygame.draw.rect(self.screen, (100, 150, 200), qubit_container, width=2, border_radius=10)
@@ -312,10 +322,10 @@ class Messageboard():
         for i, (qubit_idx, _) in enumerate(self.qubit_buttons):
             qubit = pq.cur_player.qubits[qubit_idx]
             qubit_rect = pygame.Rect(
-                qubit_container.left + 20,
-                qubit_container.top + 15 + i * 60,
-                qubit_container.width - 40,
-                50
+                qubit_container.left + 20 + i * 220,
+                qubit_container.top + 15,
+                200,
+                70
             )
             self.qubit_buttons[i] = (qubit_idx, qubit_rect)  # 更新rect
             
@@ -327,22 +337,23 @@ class Messageboard():
             alpha_str = f"{qubit.alpha.real:.2f}".rstrip('0').rstrip('.')
             beta_str = f"{qubit.beta.real:.2f}".rstrip('0').rstrip('.')
             prob_1 = abs(qubit.beta)**2 * 100
-            qubit_text = f"Q{i+1}: {alpha_str}|0> + {beta_str}|1> (|1>概率: {prob_1:.1f}%)"
+            qubit_text = f"Q{i+1}: {alpha_str}|0> + {beta_str}|1>"
             qubit_img = self.font.render(qubit_text, True, (40, 40, 40))
             self.screen.blit(qubit_img, (qubit_rect.left + 10, qubit_rect.centery - 10))
+
+        current_y += 110
         
         # ===== 道具区域 =====
-        current_y = qubit_container.bottom + 30
         item_title = self.inventory_msgs[2]
         self.screen.blit(item_title, (inventory_rect.left + 40, current_y))
         current_y += item_title.get_height() + 10
         
         # 道具容器
         item_container = pygame.Rect(
-            inventory_rect.left + 40,
+            inventory_rect.left + 20,
             current_y,
-            inventory_rect.width - 80,
-            180
+            inventory_rect.width - 40,
+            100
         )
         pygame.draw.rect(self.screen, (240, 240, 220), item_container, border_radius=10)
         pygame.draw.rect(self.screen, (150, 120, 100), item_container, width=2, border_radius=10)
@@ -350,10 +361,10 @@ class Messageboard():
         # 绘制道具
         for i, (item, _) in enumerate(self.item_buttons):
             item_rect = pygame.Rect(
-                item_container.left + 20,
+                item_container.left + 20 + i * 220,
                 item_container.top + 15 + i * 60,
-                item_container.width - 40,
-                50
+                200,
+                70
             )
             self.item_buttons[i] = (item, item_rect)  # 更新rect
             
@@ -400,18 +411,60 @@ class Messageboard():
                 
                 # 绘制道具描述文本
                 self.screen.blit(desc_surface, (tooltip_x + padding, tooltip_y + padding))
+        
+        current_y += 110
                 
+        # ===== 量子门区域 (新增) =====
+        gate_title = self.inventory_msgs[3]  # 索引改为3
+        self.screen.blit(gate_title, (inventory_rect.left + 40, current_y))
+        current_y += gate_title.get_height() + 10
+        
+        # 量子门容器
+        gate_container = pygame.Rect(
+            inventory_rect.left + 20,
+            current_y,
+            inventory_rect.width - 40,
+            100
+        )
+        pygame.draw.rect(self.screen, (240, 220, 240), gate_container, border_radius=10)
+        pygame.draw.rect(self.screen, (120, 100, 120), gate_container, width=2, border_radius=10)
+        
+        # 绘制量子门
+        for i, (gate, _) in enumerate(self.gate_buttons):
+            gate_rect = pygame.Rect(
+                gate_container.left + 20 + i * 200,
+                gate_container.top + 15,
+                180,
+                70
+            )
+            self.gate_buttons[i] = (gate, gate_rect)  # 更新rect
+            
+            # 绘制量子门框
+            color = (255, 240, 240) if i % 2 == 0 else (240, 240, 255)
+            pygame.draw.rect(self.screen, color, gate_rect, border_radius=8)
+            pygame.draw.rect(self.screen, (150, 100, 150), gate_rect, width=2, border_radius=8)
+            
+            # 量子门名称和描述
+            gate_name = self.font.render(gate.name, True, (80, 30, 30))
+            
+            self.screen.blit(gate_name, (gate_rect.centerx - gate_name.get_width()//2, gate_rect.top + 15))
+        
         # ===== 操作按钮 =====
         self.button_rect = pygame.Rect(
             inventory_rect.centerx - 100,
             inventory_rect.bottom - 70,
             200, 50
         )
-        button_color = (100, 180, 100) if not self.selecting_qubit else (180, 100, 100)
+        button_color = (100, 180, 100) if not (self.selecting_qubit or self.selecting_gate) else (180, 100, 100)
         pygame.draw.rect(self.screen, button_color, self.button_rect, border_radius=10)
         pygame.draw.rect(self.screen, (40, 80, 40), self.button_rect, width=2, border_radius=10)
         
-        button_text = "继续(C)" if not self.selecting_qubit else "取消选择(X)"
+        button_text = "继续(C)"
+        if self.selecting_qubit:
+            button_text = "取消选择(X)"
+        elif self.selecting_gate:
+            button_text = "取消选择门(X)"
+            
         button_img = self.font.render(button_text, True, (255, 255, 255))
         self.screen.blit(button_img, (
             self.button_rect.centerx - button_img.get_width()//2,
@@ -424,7 +477,13 @@ class Messageboard():
             self.screen.blit(hint_img, (
                 inventory_rect.centerx - hint_img.get_width()//2,
                 self.button_rect.top - 40
-            ))    
+            ))
+        elif self.selecting_gate:
+            hint_img = self.font.render("请点击要应用的量子门", True, (0, 0, 200))
+            self.screen.blit(hint_img, (
+                inventory_rect.centerx - hint_img.get_width()//2,
+                self.button_rect.top - 40
+            ))
             
     def draw_player_selection(self, players, current_player):
         self.player_select_buttons = []  # 清空旧按钮

@@ -23,6 +23,7 @@ import simon
 import quantum_bomb
 import math
 import shop
+import numpy as np
 
 def draw_dashed_arrow(screen, color, start, end, dash_length=10, space_length=5, arrow_size=10):
     # 向量差
@@ -97,7 +98,8 @@ def update_screen(ai_settings, screen, gs, play_button, locations,
             
             # 更新选择状态
             selecting_qubit = hasattr(gs, 'active_item') and gs.active_item and gs.active_item.selecting_qubit
-            messageboard.update_inventory_message(pq.cur_player, selecting_qubit)
+            selecting_gate = hasattr(messageboard, 'selecting_gate') and messageboard.selecting_gate
+            messageboard.update_inventory_message(pq.cur_player, selecting_qubit, selecting_gate)
             
             # 绘制背包界面
             messageboard.draw_inventory(gs, pq)
@@ -437,6 +439,31 @@ def check_click_events(ai_settings, gs, play_button, locations, messageboard, di
     elif gs.game_state == ai_settings.SHOW_INVENTORY:
         pq.cur_player = pq.cur_player
         
+        # 检查是否点击了量子门
+        for gate, rect in getattr(messageboard, 'gate_buttons', []):
+            if rect.collidepoint(mouse_x, mouse_y):
+                if not messageboard.selecting_gate:
+                    messageboard.selecting_gate = gate
+                    gs.temp_message = f"已选择{gate.name}门，请点击要操作的量子比特"
+                else:
+                    # 如果已经选择了门，再次点击可以切换门
+                    messageboard.selecting_gate = gate
+                    gs.temp_message = f"已切换为{gate.name}门，请点击要操作的量子比特"
+        
+        # 检查是否点击了qubit（当选择门模式时）
+        if messageboard.selecting_gate:
+            for index, rect in getattr(messageboard, 'qubit_buttons', []):
+                if rect.collidepoint(mouse_x, mouse_y):
+                    if index < len(pq.cur_player.qubits):
+                        # 应用量子门操作
+                        qubit = pq.cur_player.qubits[index]
+                        new_state = messageboard.selecting_gate.apply(np.array([qubit.alpha, qubit.beta]))
+                        qubit.alpha, qubit.beta = new_state[0], new_state[1]
+                        
+                        gs.temp_message = f"已对Q{index+1}应用{messageboard.selecting_gate.name}门"
+                        pq.cur_player.gates.remove(messageboard.selecting_gate)
+                        messageboard.selecting_gate = None
+
         # 检查是否点击了道具
         for item, rect in getattr(messageboard, 'item_buttons', []):
             if rect.collidepoint(mouse_x, mouse_y):
@@ -458,6 +485,8 @@ def check_click_events(ai_settings, gs, play_button, locations, messageboard, di
                     pq.cur_player.qubit_count -= 1
                     gs.temp_message = result_msg
                     if success:
+                        # 新增：使用成功后移除道具
+                        pq.cur_player.items.remove(gs.active_item)  # 从玩家物品列表中移除
                         gs.active_item = None
         
         # 检查是否点击了继续/取消按钮
@@ -467,6 +496,11 @@ def check_click_events(ai_settings, gs, play_button, locations, messageboard, di
                 gs.active_item.selecting_qubit = False
                 gs.active_item = None
                 gs.temp_message = "已取消选择"
+            elif messageboard.selecting_gate:
+                # 取消选择门模式
+                messageboard.selecting_gate = False
+                messageboard.selected_gate = None
+                gs.temp_message = "已取消量子门操作"
             else:
                 # 正常退出背包
                 # 退出背包时处理待获得的奖励
