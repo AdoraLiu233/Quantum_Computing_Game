@@ -7,6 +7,7 @@ class Settings():
         # 设置屏幕的大小和颜色
         self.screen_width = 1200
         self.screen_height = 1000  #660
+        self.screen_size = (self.screen_width, self.screen_height)
         self.bg_color = (230, 230, 230)
         self.max_rounds = 8 # 最大游戏轮数
         
@@ -27,6 +28,7 @@ class Settings():
         self.GET_QUBIT=7 # 获得qubit
         self.GET_ITEM=8 # 获得道具
 
+        self.SHOW_INVENTORY = 12
 
         # 用于从其他模块安全访问地点实例列表 (例如传送功能)
         self.locations_instance_list = []
@@ -48,6 +50,12 @@ class Settings():
 
         #设置商店图片
         self.shop_image = pygame.image.load("images/shop.png")
+
+        # 设置背包背景
+        self.backpack_image = pygame.transform.scale(
+            pygame.image.load("images/backpack.jpeg"),
+            (self.screen_width, self.screen_height)
+        )
 
         # 设置获得qubit/道具时图片
         self.get_qubit_item_image = pygame.image.load("images/get_qubit_item.png")

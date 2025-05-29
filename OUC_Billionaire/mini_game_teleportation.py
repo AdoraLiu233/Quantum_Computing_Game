@@ -3,29 +3,56 @@ import random
 import numpy as np
 from pygame.locals import *
 
+def play(screen, gs, ai_settings, qubit_to_steal):
+    """主游戏接口，与其他小游戏一致"""
+    # 保存主游戏状态
+    main_size = screen.get_size()
+    main_caption = pygame.display.get_caption()[0]
+    
+    # 初始化游戏
+    game = QuantumTeleportationGame(
+        qubit_to_steal=qubit_to_steal,
+        screen_size=(1200, 1000)  # 与其他小游戏一致的分辨率
+    )
+    
+    # 运行游戏
+    result = game.run()
+    
+    # 恢复主游戏显示
+    screen = pygame.display.set_mode(ai_settings.screen_size)
+    pygame.display.set_caption(main_caption)
+    
+    return {
+        "message": result["message"],
+        "effect": 100 if result["success"] else 0,
+        "success": result["success"]
+    }
+
 class QuantumTeleportationGame:
-    def __init__(self):
-        # 初始化参数与Grover游戏保持一致
+    def __init__(self, qubit_to_steal, screen_size=(800, 850)):
         pygame.init()
-        self.WIDTH, self.HEIGHT = 800, 850  # 与Grover游戏相同的尺寸
+        self.WIDTH, self.HEIGHT = screen_size
         self.screen = pygame.display.set_mode((self.WIDTH, self.HEIGHT))
-        pygame.display.set_caption("量子隐形传态 - 抢夺卡小游戏")
-        self.clock = pygame.time.Clock()
+        pygame.display.set_caption("量子隐形传态协议")
         
-        # 使用相同的颜色定义
-        self.WHITE = (255, 255, 255)
-        self.BLACK = (0, 0, 0)
-        self.GREEN = (0, 255, 0)
-        self.RED = (255, 0, 0)
-        self.BLUE = (0, 0, 255)
-        self.YELLOW = (255, 255, 0)
-        self.ORACLE_COLOR = (100, 200, 100)  # 深绿色
-        self.DIFFUSION_COLOR = (200, 200, 100)  # 深黄色
-        self.CHECK_COLOR = (200, 100, 100)  # 深红色
+        # 颜色和字体定义
+        self.COLORS = {
+            "WHITE": (255, 255, 255),
+            "BLACK": (0, 0, 0),
+            "GREEN": (0, 255, 0),
+            "RED": (255, 0, 0),
+            "BLUE": (0, 0, 255),
+            "ORACLE": (100, 200, 100),
+            "DIFFUSION": (200, 200, 100),
+            "CHECK": (200, 100, 100)
+        }
         
-        # 使用相同的字体
-        self.font = pygame.font.SysFont(None, 36)
-        self.small_font = pygame.font.SysFont(None, 24)
+        try:
+            self.font = pygame.font.Font('fonts/Noto_Sans_SC.ttf', 24)
+            self.small_font = pygame.font.Font('fonts/Noto_Sans_SC.ttf', 20)
+        except:
+            self.font = pygame.font.SysFont(None, 24)
+            self.small_font = pygame.font.SysFont(None, 20)
         
         # 游戏状态
         self.state = "intro"  # intro, measuring, gate_selection, result
@@ -33,15 +60,19 @@ class QuantumTeleportationGame:
         self.correct_gates = []
         self.player_choices = []
         
-        # 贝尔测量结果和对应的正确门操作
-        self.bell_states = {
-            "Φ⁺": [],
-            "Φ⁻": ["Z"],
-            "Ψ⁺": ["X"],
-            "Ψ⁻": ["X", "Z"]
-        }
         
-        # 按钮定义（与Grover游戏相似的布局）
+        # 量子数据
+        self.qubit_to_steal = {
+            'alpha': qubit_to_steal.alpha,
+            'beta': qubit_to_steal.beta
+        }
+        self.initialize_epr_pair()
+        
+        # 初始化UI
+        self.init_ui()
+        
+    def init_ui(self):
+        """初始化用户界面"""
         button_height = 50
         self.buttons = {
             "start": pygame.Rect(300, 400, 200, button_height),
@@ -53,209 +84,165 @@ class QuantumTeleportationGame:
             "continue": pygame.Rect(300, 500, 200, button_height)
         }
         
-        # 操作反馈变量（与Grover游戏相同）
-        self.action_text = ""
-        self.show_action_text = False
-        self.action_text_time = 0
-        self.ACTION_DISPLAY_TIME = 1000  # 显示操作反馈的时间（毫秒）
-
-    def draw_button(self, rect, text, color):
-        """与Grover游戏相同的按钮绘制方法"""
-        pygame.draw.rect(self.screen, color, rect)
-        pygame.draw.rect(self.screen, self.BLACK, rect, 2)
-        text_surf = self.font.render(text, True, self.BLACK)
-        text_rect = text_surf.get_rect(center=rect.center)
-        self.screen.blit(text_surf, text_rect)
-
-    def draw_intro(self):
-        """游戏介绍界面"""
-        self.screen.fill(self.WHITE)
+    def run(self):
+        """运行游戏主循环"""
+        clock = pygame.time.Clock()
+        self.result = {
+            "success": False,
+            "effect":0,
+            "message": "游戏未完成"
+        }
+        # print("333333\n")
+        self.running = True
+        while self.running:
+            for event in pygame.event.get():
+                if event.type == QUIT:
+                    print("666666\n")
+                    running = False
+                    self.result["message"] = "游戏取消"
+                
+                if event.type == MOUSEBUTTONDOWN:
+                    print("444444\n")
+                    self.handle_click(event.pos)
+            
+            self.draw()
+            pygame.display.flip()
+            clock.tick(30)
+        # print("55555\n")
+        return self.result
+    
+    def handle_click(self, mouse_pos):
+        """处理鼠标点击事件"""
+        if self.state == "intro" and self.buttons["start"].collidepoint(mouse_pos):
+            self.state = "measuring"
+            
+        elif self.state == "measuring" and self.buttons["measure"].collidepoint(mouse_pos):
+            self.perform_measurement()
+            
+        elif self.state == "gate_selection":
+            self.handle_gate_selection(mouse_pos)
+            
+        elif self.state == "result" and self.buttons["continue"].collidepoint(mouse_pos):
+            success = set(self.player_choices) == set(self.correct_gates)
+            self.result["success"] = success
+            self.result["effect"] = 100 if success else 0
+            self.result["message"] = "成功抢夺量子比特！" if success else "抢夺失败！"
+            self.state = "exit"  # 标记游戏结束
+            self.running = False  # 退出主循环
+    
+    def perform_measurement(self):
+        """执行贝尔测量"""
+        bell_states = {
+            "Φ+": [],
+            "Φ-": ["Z"],
+            "Ψ+": ["X"],
+            "Ψ-": ["X", "Z"]
+        }
         
-        # 标题（与Grover游戏相同风格）
-        title = self.font.render("量子隐形传态协议", True, self.BLUE)
+        # 简化的贝尔测量模拟
+        self.measurement_result = random.choice(list(bell_states.keys()))
+        self.correct_gates = bell_states[self.measurement_result]
+        self.state = "gate_selection"
+    
+    def handle_gate_selection(self, mouse_pos):
+        """处理量子门选择"""
+        if self.buttons["X"].collidepoint(mouse_pos):
+            self.player_choices.append("X")
+        elif self.buttons["Z"].collidepoint(mouse_pos):
+            self.player_choices.append("Z")
+        elif self.buttons["XZ"].collidepoint(mouse_pos):
+            self.player_choices.extend(["X", "Z"])
+        elif self.buttons["none"].collidepoint(mouse_pos):
+            self.player_choices = []
+        
+        if any(btn.collidepoint(mouse_pos) for btn in [
+            self.buttons["X"], self.buttons["Z"], 
+            self.buttons["XZ"], self.buttons["none"]
+        ]):
+            self.state = "result"
+    
+    def draw(self):
+        """绘制游戏界面"""
+        self.screen.fill(self.COLORS["WHITE"])
+        
+        if self.state == "intro":
+            self.draw_intro()
+        elif self.state == "measuring":
+            self.draw_measuring()
+        elif self.state == "gate_selection":
+            self.draw_gate_selection()
+        elif self.state == "result":
+            self.draw_result()
+    
+    def draw_intro(self):
+        """绘制介绍界面"""
+        title = self.font.render("量子隐形传态协议", True, self.COLORS["BLUE"])
         self.screen.blit(title, (self.WIDTH//2 - title.get_width()//2, 100))
         
-        # 协议步骤说明（使用相同字体和颜色）
         lines = [
             "你使用了抢夺卡，将执行量子隐形传态协议:",
-            "1. 你与目标玩家共享一个EPR对 (|00⟩ + |11⟩)/√2",
+            "1. 你与目标玩家共享一个EPR对 (|00> + |11>)/√2",
             "2. 目标玩家将对其qubit和EPR对进行贝尔测量",
             "3. 你需要根据测量结果选择正确的量子门",
             "4. 正确应用量子门后，你将获得目标qubit"
         ]
         
         for i, line in enumerate(lines):
-            text = self.small_font.render(line, True, self.BLACK)
+            text = self.small_font.render(line, True, self.COLORS["BLACK"])
             self.screen.blit(text, (50, 180 + i * 30))
-            
-        self.draw_button(self.buttons["start"], "开始协议", self.ORACLE_COLOR)
         
-        # 显示操作反馈（如果存在）
-        if self.show_action_text:
-            action_surface = self.font.render(self.action_text, True, self.BLACK)
-            self.screen.blit(action_surface, (50, 50))
-
+        self.draw_button("start", "开始协议", self.COLORS["ORACLE"])
+    
     def draw_measuring(self):
-        """测量阶段界面"""
-        self.screen.fill(self.WHITE)
-        title = self.font.render("贝尔测量阶段", True, self.BLUE)
+        """绘制测量界面"""
+        title = self.font.render("贝尔测量阶段", True, self.COLORS["BLUE"])
         self.screen.blit(title, (self.WIDTH//2 - title.get_width()//2, 100))
         
-        # 量子电路图示（简化版）
-        pygame.draw.line(self.screen, self.BLACK, (200, 200), (600, 200), 2)
-        pygame.draw.line(self.screen, self.BLACK, (200, 250), (600, 250), 2)
-        pygame.draw.line(self.screen, self.BLACK, (200, 300), (600, 300), 2)
-        
-        # 绘制贝尔测量符号
-        pygame.draw.rect(self.screen, self.DIFFUSION_COLOR, (400, 200, 50, 100))
-        measure_text = self.small_font.render("贝尔测量", True, self.BLACK)
-        self.screen.blit(measure_text, (405, 240))
-        
-        self.draw_button(self.buttons["measure"], "进行测量", self.CHECK_COLOR)
-        
-        if self.show_action_text:
-            action_surface = self.font.render(self.action_text, True, self.BLACK)
-            self.screen.blit(action_surface, (50, 50))
-
+        # 绘制量子电路图示
+        pygame.draw.rect(self.screen, self.COLORS["DIFFUSION"], (400, 200, 50, 100))
+        self.draw_button("measure", "进行测量", self.COLORS["CHECK"])
+    
     def draw_gate_selection(self):
-        """门选择界面"""
-        self.screen.fill(self.WHITE)
-        title = self.font.render("选择量子门", True, self.BLUE)
+        """绘制门选择界面"""
+        title = self.font.render("选择量子门", True, self.COLORS["BLUE"])
         self.screen.blit(title, (self.WIDTH//2 - title.get_width()//2, 100))
         
-        # 显示测量结果（与Grover游戏的反馈风格一致）
-        result_text = self.font.render(f"贝尔测量结果: {self.measurement_result}", True, self.BLACK)
+        result_text = self.font.render(f"贝尔测量结果: {self.measurement_result}", 
+                                     True, self.COLORS["BLACK"])
         self.screen.blit(result_text, (self.WIDTH//2 - result_text.get_width()//2, 180))
         
-        # 门选择说明
-        instruction = self.small_font.render("选择需要应用的量子门来恢复量子态:", True, self.BLACK)
-        self.screen.blit(instruction, (self.WIDTH//2 - instruction.get_width()//2, 220))
-        
-        # 绘制门选择按钮（使用与Grover游戏相同的按钮样式）
-        self.draw_button(self.buttons["X"], "X门", self.ORACLE_COLOR)
-        self.draw_button(self.buttons["Z"], "Z门", self.DIFFUSION_COLOR)
-        self.draw_button(self.buttons["XZ"], "X和Z门", self.CHECK_COLOR)
-        self.draw_button(self.buttons["none"], "不应用门", self.YELLOW)
-        
-        if self.show_action_text:
-            action_surface = self.font.render(self.action_text, True, self.BLACK)
-            self.screen.blit(action_surface, (50, 50))
-
+        self.draw_button("X", "X门", self.COLORS["ORACLE"])
+        self.draw_button("Z", "Z门", self.COLORS["DIFFUSION"])
+        self.draw_button("XZ", "X和Z门", self.COLORS["CHECK"])
+        self.draw_button("none", "不应用门", (200, 200, 100))
+    
     def draw_result(self):
-        """结果显示界面"""
-        self.screen.fill(self.WHITE)
-        title = self.font.render("协议结果", True, self.BLUE)
+        """绘制结果界面"""
+        success = set(self.player_choices) == set(self.correct_gates)
+        color = self.COLORS["GREEN"] if success else self.COLORS["RED"]
+        message = "成功! 你正确恢复了量子态!" if success else "失败! 量子态恢复不正确!"
+        
+        title = self.font.render("协议结果", True, self.COLORS["BLUE"])
         self.screen.blit(title, (self.WIDTH//2 - title.get_width()//2, 100))
         
-        # 显示玩家选择和正确答案
-        player_choice = "无" if not self.player_choices else "和".join(self.player_choices)
-        correct_answer = "无" if not self.correct_gates else "和".join(self.correct_gates)
-        
-        texts = [
-            f"你的选择: {player_choice}",
-            f"正确答案: {correct_answer}",
-            "",
-            "量子隐形传态协议完成!"
-        ]
-        
-        # 结果判定（使用与Grover游戏相同的颜色）
-        if set(self.player_choices) == set(self.correct_gates):
-            result_text = self.font.render("成功! 你正确恢复了量子态!", True, self.GREEN)
-            texts.append("你成功抢夺了目标qubit!")
-        else:
-            result_text = self.font.render("失败! 量子态恢复不正确!", True, self.RED)
-            texts.append("抢夺失败，量子态已损坏!")
-            
+        result_text = self.font.render(message, True, color)
         self.screen.blit(result_text, (self.WIDTH//2 - result_text.get_width()//2, 180))
         
-        # 显示详细信息
-        for i, text in enumerate(texts):
-            rendered = self.small_font.render(text, True, self.BLACK)
-            self.screen.blit(rendered, (self.WIDTH//2 - rendered.get_width()//2, 230 + i * 30))
-            
-        self.draw_button(self.buttons["continue"], "继续游戏", self.ORACLE_COLOR)
+        self.draw_button("continue", "继续", self.COLORS["ORACLE"])
+    
+    def draw_button(self, btn_id, text, color):
+        """通用按钮绘制方法"""
+        btn = self.buttons[btn_id]
+        pygame.draw.rect(self.screen, color, btn)
+        pygame.draw.rect(self.screen, self.COLORS["BLACK"], btn, 2)
         
-        if self.show_action_text:
-            action_surface = self.font.render(self.action_text, True, self.BLACK)
-            self.screen.blit(action_surface, (50, 50))
-
-    def run(self):
-        """运行游戏主循环"""
-        running = True
-        while running:
-            current_time = pygame.time.get_ticks()
-            
-            # 检查操作反馈是否超时（与Grover游戏相同逻辑）
-            if self.show_action_text and (current_time - self.action_text_time > self.ACTION_DISPLAY_TIME):
-                self.show_action_text = False
-            
-            for event in pygame.event.get():
-                if event.type == QUIT:
-                    running = False
-                    
-                if event.type == MOUSEBUTTONDOWN:
-                    mouse_pos = pygame.mouse.get_pos()
-                    
-                    if self.state == "intro" and self.buttons["start"].collidepoint(mouse_pos):
-                        self.state = "measuring"
-                        self.action_text = "协议初始化!"
-                        self.show_action_text = True
-                        self.action_text_time = current_time
-                        
-                    elif self.state == "measuring" and self.buttons["measure"].collidepoint(mouse_pos):
-                        # 随机选择贝尔测量结果
-                        self.measurement_result = random.choice(list(self.bell_states.keys()))
-                        self.correct_gates = self.bell_states[self.measurement_result]
-                        self.state = "gate_selection"
-                        self.action_text = f"测量结果: {self.measurement_result}"
-                        self.show_action_text = True
-                        self.action_text_time = current_time
-                        
-                    elif self.state == "gate_selection":
-                        self.player_choices = []
-                        if self.buttons["X"].collidepoint(mouse_pos):
-                            self.player_choices.append("X")
-                            self.action_text = "选择了X门"
-                            self.show_action_text = True
-                            self.action_text_time = current_time
-                        if self.buttons["Z"].collidepoint(mouse_pos):
-                            self.player_choices.append("Z")
-                            self.action_text = "选择了Z门"
-                            self.show_action_text = True
-                            self.action_text_time = current_time
-                        if self.buttons["XZ"].collidepoint(mouse_pos):
-                            self.player_choices.extend(["X", "Z"])
-                            self.action_text = "选择了X和Z门"
-                            self.show_action_text = True
-                            self.action_text_time = current_time
-                        if self.buttons["none"].collidepoint(mouse_pos):
-                            self.player_choices = []
-                            self.action_text = "选择不应用门"
-                            self.show_action_text = True
-                            self.action_text_time = current_time
-                            
-                        # 检查是否做出了选择
-                        if any(btn.collidepoint(mouse_pos) for btn in [
-                            self.buttons["X"], self.buttons["Z"], 
-                            self.buttons["XZ"], self.buttons["none"]
-                        ]):
-                            self.state = "result"
-                            
-                    elif self.state == "result" and self.buttons["continue"].collidepoint(mouse_pos):
-                        return set(self.player_choices) == set(self.correct_gates)
-            
-            # 绘制当前状态
-            if self.state == "intro":
-                self.draw_intro()
-            elif self.state == "measuring":
-                self.draw_measuring()
-            elif self.state == "gate_selection":
-                self.draw_gate_selection()
-            elif self.state == "result":
-                self.draw_result()
-                
-            pygame.display.flip()
-            self.clock.tick(30)
-            
-        pygame.quit()
-        return False
+        text_surf = self.font.render(text, True, self.COLORS["BLACK"])
+        text_rect = text_surf.get_rect(center=btn.center)
+        self.screen.blit(text_surf, text_rect)
+    
+    def initialize_epr_pair(self):
+        """初始化EPR对"""
+        self.epr_qubit = {
+            'alpha': 1/np.sqrt(2),
+            'beta': 1/np.sqrt(2)
+        }

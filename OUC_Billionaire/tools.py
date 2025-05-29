@@ -25,16 +25,32 @@ class UnlimitedMeasurementCard(Item):
             "good", 
             "可以保留，手里有合适的qubit时再测，得分几率更大"
         )
+        self.selecting_qubit = False  # 标记是否正在选择qubit
     
-    def use(self, player, target_player=None):
+    def use(self, player, qubit_index=None):
         if not player.qubits:
-            return "没有可测量的量子比特"
+            return False, "没有可测量的量子比特"
         
-        # 找出测量|1>概率最大的qubit
-        best_qubit = max(player.qubits, key=lambda q: abs(q.beta)**2)
-        index = player.qubits.index(best_qubit)
-        outcome, score_change = player.measure_qubit(index)
-        return f"测量了最优量子比特，结果为{outcome}，得分变化{score_change}"
+        if qubit_index is None:
+            # 进入选择qubit模式
+            self.selecting_qubit = True
+            return False, "请点击要测量的量子比特"
+        
+        # 执行测量
+        if 0 <= qubit_index < len(player.qubits):
+            try:
+                # 修改这里：使用字典方式获取测量结果
+                measurement_result = player.measure_qubit(qubit_index)
+                outcome = measurement_result['outcome']
+                score_change = measurement_result['score_change']
+                
+                self.selecting_qubit = False
+                return True, f"测量结果: {'|1>' if outcome else '|0>'}, 得分变化: {score_change}"
+            except Exception as e:
+                # 提供更详细的错误信息
+                return False, f"使用道具时出错: {str(e)}"
+        else:
+            return False, f"无效的量子比特索引: {qubit_index} (有效范围: 0-{len(player.qubits)-1})"
 
 class StealCard(Item):
     """抢夺卡(使用量子隐形传态)"""
@@ -44,29 +60,23 @@ class StealCard(Item):
             "good", 
             "利用teleportation算法抢夺对方的qubit"
         )
+        self.target_player = None
+        self.selecting_qubit = None
     
-    def use(self, player, target_player=None):
+    def use(self, player, target_player=None, selecting_qubit=None):
         if target_player is None:
-            return "需要指定目标玩家和量子比特索引"
+            return False, "需要选择目标玩家"
         
         if not target_player.qubits:
-            return "目标玩家没有量子比特"
+            return False, "目标玩家没有量子比特"
         
-        qubit_index = random.randint(0, len(target_player.qubits)-1)
+        if selecting_qubit is None:
+            return False, "请选择要抢夺的量子比特"
         
-        # 启动小游戏（与项目其他小游戏一致）
-        game = QuantumTeleportationGame()
-        success = game.run()
-        
-        if success:
-            # 实际抢夺操作
-            stolen_qubit = target_player.qubits.pop(qubit_index)
-            target_player.qubit_count -= 1
-            player.qubits.append(stolen_qubit)
-            player.qubit_count += 1
-            return f"成功从{target_player.player_name}处抢夺了第{qubit_index}个量子比特"
-        else:
-            return "量子隐形传态失败，抢夺未成功"
+        # 这里只是准备阶段，实际抢夺在小游戏成功后执行
+        self.target_player = target_player
+        self.qubit_index = selecting_qubit
+        return True, f"准备抢夺{target_player.player_name}的Q{selecting_qubit+1}"
 
 class RotationCard(Item):
     """任意旋转卡(精确控制版)"""
