@@ -13,6 +13,8 @@ from location import Gate
 from location import TechnologyBuilding
 from location import ArtMuseum
 from location import OfficePlace
+from tools import UnlimitedMeasurementCard, StealCard
+import mini_game_teleportation
 import mini_game_2
 import json
 from player import Player
@@ -89,6 +91,41 @@ def update_screen(ai_settings, screen, gs, play_button, locations,
             # 绘制奖励信息
             _draw_reward_message(ai_settings,gs, screen, messageboard)
 
+        elif gs.game_state == ai_settings.SHOW_INVENTORY:
+            # 绘制背景
+            screen.blit(ai_settings.backpack_image, (0, 0))
+            
+            # 更新选择状态
+            selecting_qubit = hasattr(gs, 'active_item') and gs.active_item and gs.active_item.selecting_qubit
+            messageboard.update_inventory_message(pq.cur_player, selecting_qubit)
+            
+            # 绘制背包界面
+            messageboard.draw_inventory(gs, pq)
+            
+            # 仅当有实际消息内容时显示临时消息框
+            if hasattr(gs, 'temp_message') and gs.temp_message.strip():  # 检查非空且非纯空格
+                msg_rect = pygame.Rect(
+                    (ai_settings.screen_width - 400) // 2,
+                    50,
+                    400, 40
+                )
+                pygame.draw.rect(screen, (255, 255, 200), msg_rect, border_radius=5)
+                pygame.draw.rect(screen, (200, 200, 100), msg_rect, width=2, border_radius=5)
+                msg_img = messageboard.font.render(gs.temp_message, True, (80, 80, 80))
+                screen.blit(msg_img, (
+                    msg_rect.centerx - msg_img.get_width()//2,
+                    msg_rect.centery - msg_img.get_height()//2
+                ))
+            
+            # 如果处于选择玩家模式，绘制选择弹窗
+            if hasattr(gs, 'steal_mode') and gs.steal_mode == "select_player":
+                messageboard.cancel_select_rect = messageboard.draw_player_selection(
+                    pq.queue, pq.cur_player
+                )
+            elif gs.steal_mode == "select_qubit" and hasattr(gs, 'steal_target'):
+                # 新增：绘制目标玩家的qubit选择界面
+                messageboard.draw_target_qubits(gs.steal_target)
+                
         else:
             # 绘制地图等主游戏元素
             screen.blit(ai_settings.map, (0, 0))
@@ -111,7 +148,6 @@ def update_screen(ai_settings, screen, gs, play_button, locations,
         play_button.draw_button()
 
     pygame.display.flip()
-
 
 def draw_round_info(screen, ai_settings, gs):
     """在屏幕上显示当前回合信息"""
@@ -376,43 +412,167 @@ def check_click_events(ai_settings, gs, play_button, locations, messageboard, di
             gs.mini_game_result_message = "" # 重置小游戏结果
             gs.shop_result_message = "" # 重置商店结果
 
+            # 进入背包前重置消息
+            if gs.cur_event_index == "SHOW_INVENTORY":
+                gs.temp_message = ""  # 明确初始化为空字符串
+            # 先进入背包展示状态
+            gs.game_state = ai_settings.SHOW_INVENTORY
+            gs.pending_reward = None  # 新增：存储待获得的奖励
+        
+            # 根据地点事件设置后续状态
             if gs.cur_event_index == "TRIGGER_MINI_GAME":
+                gs.next_state_after_inventory = ai_settings.MINI_GAME_STARTING
                 gs.current_mini_game_id = current_loc.mini_game_id
-                gs.game_state = ai_settings.MINI_GAME_STARTING # 进入小游戏准备阶段
-                # print(f"Player {pq.cur_player.player_name} landed on a minigame: {gs.current_mini_game_id}")
             elif gs.cur_event_index == "TRIGGER_SHOP":
-                print("-------------------------enter shop-------------------------")
+                gs.next_state_after_inventory = ai_settings.SHOP_ENTERING
+            elif gs.cur_event_index == "GET_RANDOM_QUBIT":
+                gs.next_state_after_inventory = ai_settings.GET_QUBIT
+                gs.pending_reward = {"type": "qubit", "content": current_loc.get_random_qubit()}
+            elif gs.cur_event_index == "GET_RANDOM_ITEM":
+                gs.next_state_after_inventory = ai_settings.GET_ITEM
+                gs.pending_reward = {"type": "item", "content": current_loc.get_random_item()}
+            else:
+                gs.next_state_after_inventory = ai_settings.END_ROUND
 
-                gs.game_state = ai_settings.SHOP_ENTERING
+    elif gs.game_state == ai_settings.SHOW_INVENTORY:
+        pq.cur_player = pq.cur_player
+        
+        # 检查是否点击了道具
+        for item, rect in getattr(messageboard, 'item_buttons', []):
+            if rect.collidepoint(mouse_x, mouse_y):
+                if isinstance(item, UnlimitedMeasurementCard):
+                    if not pq.cur_player.qubits:
+                        gs.temp_message = "没有可测量的量子比特"
+                    else:
+                        item.selecting_qubit = True
+                        gs.temp_message = "请选择要测量的量子比特"
+                        gs.active_item = item
+        
+        # 检查是否点击了qubit（当选择qubit模式时）
+        if hasattr(gs, 'active_item') and gs.active_item and gs.active_item.selecting_qubit:
+            for index, rect in getattr(messageboard, 'qubit_buttons', []):
+                if rect.collidepoint(mouse_x, mouse_y):
+                    success, result_msg = gs.active_item.use(pq.cur_player, index)
+                    # 测量后删除qubit
+                    pq.cur_player.qubits.pop(index)
+                    pq.cur_player.qubit_count -= 1
+                    gs.temp_message = result_msg
+                    if success:
+                        gs.active_item = None
+        
+        # 检查是否点击了继续/取消按钮
+        if messageboard.button_rect.collidepoint(mouse_x, mouse_y):
+            if hasattr(gs, 'active_item') and gs.active_item:
+                # 取消选择模式
+                gs.active_item.selecting_qubit = False
+                gs.active_item = None
+                gs.temp_message = "已取消选择"
+            else:
+                # 正常退出背包
+                # 退出背包时处理待获得的奖励
+                if gs.pending_reward:
+                    gs.reward_data = gs.pending_reward
+                    if gs.pending_reward["type"] == "qubit":
+                        pq.cur_player.add_qubit(gs.pending_reward["content"])
+                    elif gs.pending_reward["type"] == "item":
+                        pq.cur_player.items.append(gs.pending_reward["content"])
+                    gs.pending_reward = None
+                gs.game_state = gs.next_state_after_inventory or ai_settings.END_ROUND
+                if hasattr(gs, 'temp_message'):
+                    del gs.temp_message
+            
+        # 处理抢夺卡点击
+        for item, rect in messageboard.item_buttons:
+            if rect.collidepoint(mouse_x, mouse_y) and isinstance(item, StealCard):
+                if len(pq.queue) <= 1:  # 只有自己
+                    gs.temp_message = "没有其他玩家可抢夺"
+                else:
+                    gs.active_item = item
+                    gs.steal_mode = "select_player"
+                    gs.temp_message = "请选择目标玩家"
+        
+        if gs.steal_mode == "select_player":
+            # 检查玩家选择
+            for player, rect in messageboard.player_select_buttons:
+                if rect.collidepoint(mouse_x, mouse_y):
+                    if player != pq.cur_player:
+                        gs.steal_target = player  # 直接使用玩家对象
+                        gs.steal_mode = "select_qubit"
+                        gs.temp_message = f"选择从{player.player_name}抢夺的量子比特"
+            # 检查取消按钮
+            if hasattr(messageboard, 'cancel_select_rect') and messageboard.cancel_select_rect.collidepoint(mouse_x, mouse_y):
+                gs.steal_mode = None
+                gs.active_item = None
+                gs.temp_message = "已取消抢夺"
+
+        # 处理qubit选择
+        elif gs.steal_mode == "select_qubit" and hasattr(gs, 'steal_target'):
+            # 检查是否点击了qubit
+            for qubit_button in messageboard.qubit_buttons:
+                index, rect = qubit_button  # 解包元组
+                if rect.collidepoint(mouse_x, mouse_y):
+                    if index < len(gs.steal_target.qubits):  # 确保索引有效
+                        # 启动小游戏
+                        gs.game_state = ai_settings.MINI_GAME_STARTING
+                        gs.current_mini_game_id = "quantum_teleportation"
+                        gs.steal_data = {
+                            "target": gs.steal_target,
+                            "qubit_index": index,
+                            "qubit": gs.steal_target.qubits[index]  # 存储目标qubit
+                        }
+                        # 清除临时状态
+                        gs.steal_mode = None
+                        gs.active_item = None
+                        gs.temp_message = "正在启动量子隐形传态小游戏..."
+                        return True  # 表示需要更新屏幕
+                    else:
+                        gs.temp_message = "无效的量子比特选择"
+                        return True
+            
+            # 检查取消按钮
+            if hasattr(messageboard, 'cancel_select_rect') and messageboard.cancel_select_rect.collidepoint(mouse_x, mouse_y):
+                gs.steal_mode = None
+                gs.active_item = None
+                gs.temp_message = "已取消抢夺"
+
+            # if gs.cur_event_index == "TRIGGER_MINI_GAME":
+            #     gs.current_mini_game_id = current_loc.mini_game_id
+            #     gs.game_state = ai_settings.MINI_GAME_STARTING # 进入小游戏准备阶段
+            #     # print(f"Player {pq.cur_player.player_name} landed on a minigame: {gs.current_mini_game_id}")
+            # elif gs.cur_event_index == "TRIGGER_SHOP":
+            #     print("-------------------------enter shop-------------------------")
+
+            #     gs.game_state = ai_settings.SHOP_ENTERING
 
                 
-            elif gs.cur_event_index == "GET_RANDOM_QUBIT":
-                new_qubit = current_loc.get_random_qubit()
-                pq.cur_player.add_qubit(new_qubit)
+            # elif gs.cur_event_index == "GET_RANDOM_QUBIT":
+            #     new_qubit = current_loc.get_random_qubit()
+            #     pq.cur_player.add_qubit(new_qubit)
 
-                # 准备详细消息
-                alpha_str = f"{new_qubit.alpha.real:.2f}"
-                beta_str = f"{new_qubit.beta.real:.2f}"
-                gs.reward_data = {
-                    "type": "qubit",
-                    "content": new_qubit
-                }
-                gs.game_state = ai_settings.GET_QUBIT
-            elif gs.cur_event_index == "GET_RANDOM_ITEM":
-                new_item = current_loc.get_random_item()
-                pq.cur_player.items.append(new_item)
-                gs.reward_data = {
-                    "type": "item",
-                    "content": new_item
-                }
-                gs.game_state = ai_settings.GET_ITEM
+            #     # 准备详细消息
+            #     alpha_str = f"{new_qubit.alpha.real:.2f}"
+            #     beta_str = f"{new_qubit.beta.real:.2f}"
+            #     gs.reward_data = {
+            #         "type": "qubit",
+            #         "content": new_qubit
+            #     }
+            #     gs.game_state = ai_settings.GET_QUBIT
+            # elif gs.cur_event_index == "GET_RANDOM_ITEM":
+            #     new_item = current_loc.get_random_item()
+            #     pq.cur_player.items.append(new_item)
+            #     gs.reward_data = {
+            #         "type": "item",
+            #         "content": new_item
+            #     }
+            #     gs.game_state = ai_settings.GET_ITEM
 
-            elif isinstance(gs.cur_event_index, int): # 是普通事件索引
-                print("无事发生")
-                gs.game_state = ai_settings.END_ROUND
-            else:
-                print(f"Warning: Unknown event index type: {gs.cur_event_index}")
-                gs.game_state = ai_settings.END_ROUND
+            # elif isinstance(gs.cur_event_index, int): # 是普通事件索引
+            #     print("无事发生")
+            #     gs.game_state = ai_settings.END_ROUND
+            # else:
+            #     print(f"Warning: Unknown event index type: {gs.cur_event_index}")
+            #     gs.game_state = ai_settings.END_ROUND
+    
     elif gs.game_state == ai_settings.SHOP_ENTERING:
         run_shop(ai_settings, screen, gs, pq.cur_player)
         gs.game_state = ai_settings.END_ROUND
@@ -563,6 +723,35 @@ def run_specific_mini_game(ai_settings, screen, gs, current_player):
             current_player.money += 400
     elif gs.current_mini_game_id == "mini_game_2":
         game_result = mini_game_2.play(screen, gs, ai_settings)
+    elif gs.current_mini_game_id == "quantum_teleportation":
+        # 确保steal_data存在
+        if not hasattr(gs, 'steal_data') or not gs.steal_data:
+            return {
+                "message": "抢夺数据未初始化",
+                "effect": 0
+            }
+        
+        # 运行小游戏并获取结果
+        game = mini_game_teleportation.QuantumTeleportationGame(
+            qubit_to_steal=gs.steal_data['qubit']
+        )
+        game_result = game.run()  # 直接获取结果字典
+        # print(game_result)
+        # 处理抢夺逻辑
+        if game_result["success"]:
+            target = gs.steal_data["target"]
+            index = gs.steal_data["qubit_index"]
+            if 0 <= index < len(target.qubits):
+                stolen_qubit = target.qubits.pop(index)
+                current_player.qubits.append(stolen_qubit)
+        
+        # 填充主程序结果
+        game_result = {
+            "message": game_result["message"],
+            "effect": 10 if game_result["success"] else 0,
+            "success": game_result["success"]
+        }
+            
     else:
         print(f"Warning: Attempted to run unknown or unhandled minigame ID '{gs.current_mini_game_id}'")
         # Fallback message already set in game_result init
@@ -576,8 +765,11 @@ def run_specific_mini_game(ai_settings, screen, gs, current_player):
     else:
         print(f"Warning: Minigame effect '{gs.mini_game_player_effect}' is not a number.")
 
+    screen = pygame.display.set_mode(ai_settings.screen_size)
     pygame.display.set_caption(original_caption[0])
+    print("11111111")
     gs.game_state = ai_settings.SHOW_MINI_GAME_RESULT
+    print("22222222")
 
 
 def run_shop(ai_settings, screen, gs, current_player):
@@ -608,8 +800,8 @@ def run_shop(ai_settings, screen, gs, current_player):
 def create_player_queue(ai_settings, screen, locations, pq):
     # 创建所有玩家
     player1 = Player(ai_settings, screen, locations, 1, "红色小人")
-    player2 = Player(ai_settings, screen, locations, 2, "橙色小人")
-    player3 = Player(ai_settings, screen, locations, 3, "蓝色小人")
+    player2 = Player(ai_settings, screen, locations, 2, "橙色小人", True)
+    player3 = Player(ai_settings, screen, locations, 3, "蓝色小人", True)
     # 将所有玩家加入游戏队列
     pq.add_player(player1)
     pq.add_player(player2)

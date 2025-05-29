@@ -2,10 +2,11 @@
 import pygame
 import numpy as np
 import random
+from tools import UnlimitedMeasurementCard,StealCard
 
 class Player():
     """玩家信息类"""
-    def __init__(self, ai_settings, screen, locations, player_id, name):
+    def __init__(self, ai_settings, screen, locations, player_id, name, give_starting_items=False):
         self.ai_settings = ai_settings
         self.screen = screen
         self.locations = locations
@@ -34,6 +35,10 @@ class Player():
         self.image = pygame.image.load(file_path_str)
         self.rect = self.image.get_rect()
         self.rect.center = (self.locations[0].x, self.locations[0].y)
+
+        if give_starting_items:
+            unlimited_card = StealCard()
+            self.items.append(unlimited_card)
         
     def move(self, step):
         """控制玩家每回合的移动"""
@@ -68,14 +73,19 @@ class Player():
     
     def measure_qubit(self, index):
         """
-        在|0>,|1>基下测量特定量子比特
-        返回:
-            tuple: (测量结果(0或1), 分数变化)
+        增强测量方法
         """
         if 0 <= index < len(self.qubits):
             outcome, score_change = self.qubits[index].measure()
             self.score += score_change
-            return outcome, score_change
+            prob_1 = abs(self.qubits[index].beta)**2
+            return {
+                'outcome': outcome,
+                'score_change': score_change,
+                'probability': prob_1,
+                'qubit_state_before': str(self.qubits[index]),
+                'qubit_index': index
+            }
         raise IndexError("量子比特索引越界")
 
     def get_quantum_state_info(self):
