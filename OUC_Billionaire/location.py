@@ -123,9 +123,7 @@ class OfficePlace(Location):
     def __init__(self, ai_settings, screen, index, pos_x, pos_y, msg, mini_game_id=None):
         # 继承父类的构造方法
         super().__init__(ai_settings, screen, index, pos_x, pos_y, msg, mini_game_id)
-        self.item_pool=[tool.RotationCard(),
-                        tool.DoubleScoreCard(),
-                        tool.StealCard()]
+        self.item_pool=[tool.StealCard()]
         self.can_give_item = True
 
     def trigger_event(self, player):

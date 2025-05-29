@@ -219,9 +219,6 @@ class Messageboard():
         if gs.game_state == self.ai_settings.END_ROUND or \
            gs.game_state == self.ai_settings.SHOW_MINI_GAME_RESULT or \
             gs.game_state == self.ai_settings.SHOP_RESULT:
-            print("99999999")
-            print(f"Button rect: {self.button_rect}")  # 新增：打印按钮位置
-            print(f"Button surface size: {self.end_round_button.get_size()}")  # 新增：打印按钮大小
             self.screen.blit(self.end_round_button, self.button_rect)
 
         if gs.game_state == self.ai_settings.GAME_OVER:
