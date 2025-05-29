@@ -248,7 +248,7 @@ def draw_button(screen, x, y, width, height, text, color=BLUE, enabled=True):
 
 class SimonGame:
     """简化的Simon算法游戏"""
-    def __init__(self):
+    def __init__(self, player):
         self.screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
         pygame.display.set_caption("Simon算法游戏")
         self.clock = pygame.time.Clock()
@@ -262,7 +262,7 @@ class SimonGame:
         # 游戏状态
         self.quantum_state = QuantumState(self.n)
         self.orthogonal_vectors = []
-        self.score = 1000
+        self.player = player
         self.oracle_queries = 0
         self.max_queries = self.n * 2
         self.game_won = False
@@ -345,11 +345,11 @@ class SimonGame:
     
     def use_superposition_input(self):
         """使用叠加态输入"""
-        if self.score < 20:
+        if self.player.money < 20:
             self.add_message("积分不足！", RED)
             return
             
-        self.score -= 20
+        self.player.money -= 20
         self.quantum_state = QuantumState(self.n)
         self.quantum_state.apply_hadamard_a()
         
@@ -359,11 +359,11 @@ class SimonGame:
     
     def use_custom_input(self, x):
         """使用自定义输入"""
-        if self.score < 5:
+        if self.player.money < 5:
             self.add_message("积分不足！", RED)
             return
             
-        self.score -= 5
+        self.player.money -= 5
         self.quantum_state = QuantumState(self.n)
         self.quantum_state.set_input(x)
         
@@ -378,11 +378,11 @@ class SimonGame:
             return
             
         cost = 25
-        if self.score < cost:
+        if self.player.money < cost:
             self.add_message("积分不足！", RED)
             return
             
-        self.score -= cost
+        self.player.money -= cost
         self.oracle_queries += 1
         
         print(f"DEBUG: ----- Oracle查询 #{self.oracle_queries} -----")
@@ -393,11 +393,11 @@ class SimonGame:
     def measure_b(self):
         """测量寄存器B"""
         cost = 10
-        if self.score < cost:
+        if self.player.money < cost:
             self.add_message("积分不足！", RED)
             return
             
-        self.score -= cost
+        self.player.money -= cost
         print(f"DEBUG: ----- 测量寄存器B -----")
         measured_b, collapsed_a = self.quantum_state.measure_b()
         
@@ -421,11 +421,11 @@ class SimonGame:
     def apply_final_h(self):
         """应用最终H变换"""
         cost = 15
-        if self.score < cost:
+        if self.player.money < cost:
             self.add_message("积分不足！", RED)
             return
             
-        self.score -= cost
+        self.player.money -= cost
         print(f"DEBUG: ----- 应用最终Hadamard变换 -----")
         self.quantum_state.apply_hadamard_a()
         self.add_message("对A应用H变换，消耗15积分", GREEN)
@@ -433,11 +433,11 @@ class SimonGame:
     def measure_a(self):
         """测量寄存器A - 使用正确的概率分布"""
         cost = 10
-        if self.score < cost:
+        if self.player.money < cost:
             self.add_message("积分不足！", RED)
             return
             
-        self.score -= cost
+        self.player.money -= cost
         
         print(f"DEBUG: ----- 测量寄存器A -----")
         
@@ -473,7 +473,7 @@ class SimonGame:
         
         print(f"DEBUG: 测量结果 y = {y_str}, s·y = {dot_product} (mod 2), 正交性: {is_orthogonal}")
         
-        self.add_message(f"s·y = {dot_product} (mod 2)", GREEN if is_orthogonal else RED)
+        # self.add_message(f"s·y = {dot_product} (mod 2)", GREEN if is_orthogonal else RED)
         
         # 记录测量结果（只要不是全0就记录）
         if measured_y != 0:
@@ -530,12 +530,23 @@ class SimonGame:
             self.game_won = True
             s_str = bin(self.s)[2:].zfill(self.n)
             bonus = (self.max_queries - self.oracle_queries) * 30
-            self.score += bonus + 100
+            if self.n == 2:
+                self.player.money += bonus + 300
+                change = bonus + 300
+                self.player.score += 1
+            elif self.n == 3:
+                self.player.money += bonus + 500
+                self.player.score += 2
+                change = bonus + 500
+            elif self.n == 4:
+                self.player.money += bonus + 800
+                self.player.score += 3
+                change = bonus + 800
             
             print(f"DEBUG: 游戏胜利! s = {s_str}")
             self.add_message("恭喜！找到隐藏字符串！", GOLD)
             self.add_message(f"s = {s_str}", GREEN)
-            self.add_message(f"效率奖励：{bonus}积分", GOLD)
+            self.add_message(f"奖励积分{self.n - 1}，奖励金钱{change}", GOLD)
         else:
             s_str = bin(self.s)[2:].zfill(self.n)
             guess_str = bin(solved_s)[2:].zfill(self.n) if solved_s else "无效"
@@ -560,11 +571,11 @@ class SimonGame:
             return
             
         cost = 80
-        if self.score < cost:
+        if self.player.money < cost:
             self.add_message("积分不足！需要80积分", RED)
             return
             
-        self.score -= cost
+        self.player.money -= cost
         self.hint_purchased = True
         
         self.add_message("算法提示已购买！可重复查看", BLUE)
@@ -670,7 +681,7 @@ class SimonGame:
         self.screen.blit(title_surface, title_rect)
         
         # 状态栏
-        status = f"积分:{self.score} | Oracle:{self.oracle_queries}/{self.max_queries}"
+        status = f"积分:{self.player.money} | Oracle:{self.oracle_queries}/{self.max_queries}"
         if self.game_won:
             status += " | 胜利！"
         status_surface = font_small.render(status, True, NAVY)
@@ -687,10 +698,10 @@ class SimonGame:
         draw_panel(self.screen, 20, 160, 250, 160, "选择输入")
         self.button_rects["superposition"] = draw_button(self.screen, 30, 190, 230, 30, 
                                                        "获得叠加态 (20积分)", GREEN, 
-                                                       self.score >= 20 and not self.game_won)
+                                                       self.player.money >= 20 and not self.game_won)
         self.button_rects["custom"] = draw_button(self.screen, 30, 225, 230, 30, 
                                                 "获得自定义纠缠态 (5积分)", BLUE, 
-                                                self.score >= 5 and not self.game_won)
+                                                self.player.money >= 5 and not self.game_won)
         
         # 显示输入状态
         if self.input_active:
@@ -722,7 +733,7 @@ class SimonGame:
         
         for btn_name, text, color in steps:
             cost = {"oracle": 25, "measure_b": 10, "final_h": 15, "measure_a": 10}[btn_name]
-            enabled = (self.score >= cost and not self.game_won and 
+            enabled = (self.player.money >= cost and not self.game_won and 
                       (btn_name != "oracle" or self.oracle_queries < self.max_queries))
             self.button_rects[btn_name] = draw_button(self.screen, 30, y_pos, 230, 30, 
                                                     text, color, enabled)
@@ -734,7 +745,7 @@ class SimonGame:
         # independent_count = self.get_independent_vector_count()
         # self.button_rects["auto_solve"] = draw_button(self.screen, 30, 590, 110, 30, 
         #                                    "自动求解 (50积分)", GOLD, 
-        #                                    self.score >= 50 and independent_count >= self.n-1 and not self.game_won)
+        #                                    self.player.money >= 50 and independent_count >= self.n-1 and not self.game_won)
         self.button_rects["manual_solve"] = draw_button(self.screen, 30, 590, 230, 30, 
                                                "手动输入答案", BLUE, not self.game_won)
         
@@ -758,11 +769,11 @@ class SimonGame:
         # 帮助工具 - 位置调整
         draw_panel(self.screen, 20, 720, 250, 60, "帮助工具")
         
-        hint_color = BLUE if self.hint_purchased else (BLUE if self.score >= 80 else RED)
+        hint_color = BLUE if self.hint_purchased else (BLUE if self.player.money >= 80 else RED)
         hint_text = "查看提示" if self.hint_purchased else "算法提示 (80积分)"
         self.button_rects["hint"] = draw_button(self.screen, 30, 745, 110, 25, 
                                               hint_text, hint_color, 
-                                              self.hint_purchased or self.score >= 80)
+                                              self.hint_purchased or self.player.money >= 80)
         
         # 消息面板
         draw_panel(self.screen, 290, 80, 400, 500, "操作日志")
@@ -780,7 +791,7 @@ class SimonGame:
         status_lines = [
             f"难度: n = {self.n}",
             f"目标: 找到{self.n}位隐藏字符串s",
-            f"当前积分: {self.score}",
+            f"当前积分: {self.player.money}",
             f"Oracle查询: {self.oracle_queries}/{self.max_queries}",
             "",
             "测量结果:"
@@ -886,7 +897,7 @@ def play(screen, ai_settings, current_player):
     pygame.display.set_caption("Simon算法游戏")
     
     # 创建游戏实例，使用独立屏幕
-    game = SimonGame()  # 不传入外部屏幕，让它使用自己的
+    game = SimonGame(current_player)  # 不传入外部屏幕，让它使用自己的
     
     try:
         # 运行完整的游戏循环
@@ -899,17 +910,13 @@ def play(screen, ai_settings, current_player):
         if game.game_won:
             cards = min(6, max(2, game.n + 1))
             result = {
-                "message": f"Simon算法挑战成功！获得{cards}张牌",
-                "effect": game.score // 50,
-                "cards_gained": cards,
-                "final_score": game.score
+                "message": f"Simon算法挑战成功！",
+                "effect": 0
             }
         else:
             result = {
                 "message": "Simon算法挑战未完成",
-                "effect": game.score // 100,
-                "cards_gained": max(1, game.score // 200),
-                "final_score": game.score
+                "effect": 0
             }
     
     except Exception as e:
@@ -928,7 +935,15 @@ def play(screen, ai_settings, current_player):
 
 def main():
     """主函数 - 独立运行"""
-    game = SimonGame()
+    pygame.init()
+    screen = pygame.display.set_mode((800, 600))
+    class MockPlayer:
+        def __init__(self):
+            self.money = 1000
+            self.score = 0
+    
+    player = MockPlayer()
+    game = SimonGame(player)
     game.run()
 
 if __name__ == "__main__":

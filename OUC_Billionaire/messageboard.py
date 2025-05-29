@@ -61,8 +61,7 @@ class Messageboard():
             else:
                 print(f"Warning: Player {player.player_name} has invalid position {player.pos}")
 
-            player_msg_str_2 = ("拥有积分：" + str(player.money) + "  当前位置：" 
-                                + location_name)
+            player_msg_str_2 = ("拥有金钱：" + str(player.money) + "拥有积分：" + str(player.score) +  "当前位置：" + location_name)
             msg1_img = self.font.render(player_msg_str_1, True, self.text_color_1)
             msg2_img = self.font.render(player_msg_str_2, True, self.text_color_1)
             self.player_rendered_msgs.append([msg1_img, msg2_img])

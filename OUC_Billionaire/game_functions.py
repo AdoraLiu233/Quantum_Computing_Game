@@ -554,6 +554,13 @@ def run_specific_mini_game(ai_settings, screen, gs, current_player):
         game_result = simon.play(screen, ai_settings, current_player)
     elif gs.current_mini_game_id == "quantum_bomb":
         game_result = quantum_bomb.play(screen, ai_settings, current_player)
+        print(game_result)
+        if game_result["message"] == "炸弹爆炸！积分 - 3":
+            current_player.score -= 3
+        elif game_result["message"] == "识别错误，积分 - 2":
+            current_player.score -= 2
+        elif game_result["message"] == "识别正确！获得400金钱奖励":
+            current_player.money += 400
     elif gs.current_mini_game_id == "mini_game_2":
         game_result = mini_game_2.play(screen, gs, ai_settings)
     else:

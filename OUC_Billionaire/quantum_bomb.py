@@ -132,8 +132,8 @@ class QuantumBombGame:
             self.show_tutorial = True
             self.tutorial_type = 'rules'
         elif self.get_rect(90, 20, 100, 25).collidepoint(pos):
-            if self.player.score >= 15:
-                self.player.score -= 15
+            if self.player.money >= 50:
+                self.player.money -= 50
                 self.show_tutorial = True
                 self.tutorial_type = 'strategy'
         
@@ -154,15 +154,15 @@ class QuantumBombGame:
             if buttons['rotate'].collidepoint(pos) and self.rotation_cards > 0:
                 self.inputting_angle = True
                 self.angle_input = ""
-            elif buttons['std_measure'].collidepoint(pos) and self.player.score >= 20:
-                self.player.score -= 20
+            elif buttons['std_measure'].collidepoint(pos) and self.player.money >= 20:
+                self.player.money -= 20
                 result = self.qubit.measure_standard()
                 self.operations.append(f"标准基测量 → {result}")
                 self.last_measured = True
                 self.display_state = f"|{result}>"
                 print(f"Debug: 标准基测量结果={result}, 量子态={self.qubit}")
-            elif buttons['pm_measure'].collidepoint(pos) and self.player.score >= 10:
-                self.player.score -= 10
+            elif buttons['pm_measure'].collidepoint(pos) and self.player.money >= 10:
+                self.player.money -= 10
                 result = self.qubit.measure_pm()
                 basis_result = "|+>" if result == 0 else "|->"
                 self.operations.append(f"±基测量 → {basis_result}")
@@ -186,7 +186,7 @@ class QuantumBombGame:
                         self.phase = 'result'
                     else:
                         self.last_measured = True
-                        self.display_state = "|0> (炸弹测量结果)"
+                        # self.display_state = "|0> (炸弹测量结果)"
                         print(f"Debug: 黑箱检测 - 有炸弹但测量到|0>，安全！量子态={self.qubit}")
                         
                 if exploded:
@@ -255,12 +255,12 @@ class QuantumBombGame:
         title = self.font.render("量子炸弹检测游戏", True, self.colors['black'])
         self.screen.blit(title, (20, 60))
         
-        info = self.small_font.render(f"积分: {self.player.score} | 旋转机会: {self.rotation_cards}", True, self.colors['black'])
+        info = self.small_font.render(f"积分: {self.player.money} | 旋转机会: {self.rotation_cards}", True, self.colors['black'])
         self.screen.blit(info, (400, 65))
         
         # 工具栏
         self.draw_button(self.get_rect(20, 20, 60, 25), "规则", self.colors['green'])
-        self.draw_button(self.get_rect(90, 20, 100, 25), "策略(-15分)", self.colors['orange'])
+        self.draw_button(self.get_rect(90, 20, 100, 25), "策略(-50分)", self.colors['orange'])
         
         if self.phase == 'select':
             self.draw_select_phase()
@@ -305,8 +305,8 @@ class QuantumBombGame:
         # 操作按钮
         buttons = self.get_operation_buttons()
         self.draw_button(buttons['rotate'], f"旋转({self.rotation_cards})", enabled=self.rotation_cards > 0)
-        self.draw_button(buttons['std_measure'], "标准基(-20)", enabled=self.player.score >= 20)
-        self.draw_button(buttons['pm_measure'], "±基(-10)", enabled=self.player.score >= 10)
+        self.draw_button(buttons['std_measure'], "标准基(-20)", enabled=self.player.money >= 20)
+        self.draw_button(buttons['pm_measure'], "±基(-10)", enabled=self.player.money >= 10)
         self.draw_button(buttons['blackbox'], "黑箱检测", self.colors['red'])
         self.draw_button(buttons['judge'], "进行判断", enabled=len(self.operations) > 0)
         self.draw_button(buttons['reselect'], "重新选择", self.colors['gray'])
@@ -344,17 +344,17 @@ class QuantumBombGame:
         if self.exploded:
             result_text = "炸弹爆炸！"
             color = self.colors['red']
-            message = "黑箱检测触发爆炸\n积分减半，跳过下回合"
+            message = "黑箱检测触发爆炸\n积分 - 3"
         else:
             correct = (self.judgment == self.has_bomb)
             if correct:
                 result_text = "识别正确！"
                 color = self.colors['green']
-                message = f"实际状态: {'有炸弹' if self.has_bomb else '无炸弹'}\n旋转卡退回并获得3张新卡"
+                message = f"实际状态: {'有炸弹' if self.has_bomb else '无炸弹'}\n金钱 + 400！"
             else:
                 result_text = "识别错误！"
                 color = self.colors['red']
-                message = f"你的判断: {'有炸弹' if self.judgment else '无炸弹'}\n实际状态: {'有炸弹' if self.has_bomb else '无炸弹'}\n跳过下回合"
+                message = f"你的判断: {'有炸弹' if self.judgment else '无炸弹'}\n实际状态: {'有炸弹' if self.has_bomb else '无炸弹'}\n 积分 - 2"
         
         title_surf = self.font.render(result_text, True, color)
         self.screen.blit(title_surf, (300, 200))
@@ -419,22 +419,18 @@ class QuantumBombGame:
         """返回游戏结果"""
         if self.exploded:
             return {
-                "message": "炸弹爆炸！积分减半，跳过下回合",
-                "effect": -self.player.score // 2,
-                "skip_turn": True
+                "message": "炸弹爆炸！积分 - 3",
+                "effect": 0,
             }
         elif self.judgment == self.has_bomb:
             return {
-                "message": "识别正确！获得奖励",
+                "message": "识别正确！获得400金钱奖励",
                 "effect": 0,
-                "return_cards": 10 - self.rotation_cards,
-                "new_cards": 3
             }
         else:
             return {
-                "message": "识别错误，跳过下回合",
+                "message": "识别错误，积分 - 2",
                 "effect": 0,
-                "skip_turn": True
             }
 
 def play(screen, ai_settings, current_player):
@@ -448,9 +444,8 @@ def play(screen, ai_settings, current_player):
         Qubit(1, 0), Qubit(1/np.sqrt(2), 1/np.sqrt(2)), Qubit(0, 1),
         Qubit(1/np.sqrt(2), -1/np.sqrt(2)), Qubit(0.8, 0.6)
     ]
-    # if not hasattr(current_player, 'score'):
-    #     current_player.score = 100
-    current_player.score = 100
+    if not hasattr(current_player, 'money'):
+        current_player.money = 100
     
     # 保存原窗口信息
     original_size = screen.get_size()
@@ -505,7 +500,7 @@ def main():
     
     class MockPlayer:
         def __init__(self):
-            self.score = 100
+            self.money = 100
             self.qubits = [
                 Qubit(1, 0), Qubit(1/np.sqrt(2), 1/np.sqrt(2)), Qubit(0, 1),
                 Qubit(1/np.sqrt(2), -1/np.sqrt(2)), Qubit(0.8, 0.6)
