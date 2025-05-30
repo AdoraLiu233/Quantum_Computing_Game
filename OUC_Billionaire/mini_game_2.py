@@ -250,21 +250,21 @@ def play(screen, gs, ai_settings):
                         pygame.display.set_mode(main_size)
                         pygame.display.set_caption(main_caption)
                         return {
-                            "message": "量子迷宫挑战成功！找到了目标！",
+                            "message": "量子迷宫挑战成功！找到了目标！获得资金100元",
                             "effect": 100
                         }
                     elif game_status == "Lose":
                         pygame.display.set_mode(main_size)
                         pygame.display.set_caption(main_caption)
                         return {
-                            "message": "量子迷宫挑战失败，但获得了经验。",
+                            "message": "量子迷宫挑战失败，但获得了经验。获得资金10元",
                             "effect": 10
                         }
                     else:
                         pygame.display.set_mode(main_size)
                         pygame.display.set_caption(main_caption)
                         return {
-                            "message": "量子迷宫游戏退出。",
+                            "message": "量子迷宫游戏退出。未获得资金",
                             "effect": 0
                         }
                 

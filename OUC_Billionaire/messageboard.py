@@ -128,14 +128,16 @@ class Messageboard():
                 elif "失败" in gs.mini_game_result_message: result_color = (150, 0, 0) # 红色
                 
                 result_img = self.font.render(gs.mini_game_result_message, True, result_color)
+
                 self.event_msg.append(result_img)
+                self.event_msg.append(f"当前资金：{player.money}")
             else:
                 self.event_msg.append(self.font.render("小游戏已结束。", True, self.text_color_2))
             # 在此状态下，也显示“结束回合”按钮，其rect在draw_messageboard中处理或者在这里设置
             # self.button_rect 的位置计算应在此处或 draw 中确保
         elif gs.game_state == self.ai_settings.SHOP_ENTERING:
             intro_msg_str = f"你来到了二校门，校外有清华印象文创店，快来补给吧！"
-            intro_msg_str = f"即将进入商店!"
+            # intro_msg_str = f"即将进入商店!"
             intro_img = self.font.render(intro_msg_str, True, self.text_color_2)
             self.event_msg.append(intro_img)
 
@@ -175,17 +177,17 @@ class Messageboard():
             self.event_msg.append(self.font.render("事件处理完毕。", True, self.text_color_2))
 
         # --- 统一处理消息和按钮的位置 ---
-        current_y = self.box_3.top + 10
-        for i, msg_img in enumerate(self.event_msg):
-            msg_rect = msg_img.get_rect()
-            msg_rect.top = current_y
-            msg_rect.left = self.box_3.left + 10
-            self.event_msg_rect.append(msg_rect)
-            current_y += msg_rect.height + 5
+        # current_y = self.box_3.top + 10
+        # for i, msg_img in enumerate(self.event_msg):
+        #     msg_rect = msg_img.get_rect()
+        #     msg_rect.top = current_y
+        #     msg_rect.left = self.box_3.left + 10
+        #     self.event_msg_rect.append(msg_rect)
+        #     current_y += msg_rect.height + 5
 
-            # 如果当前消息是“开始小游戏”按钮，则将其rect赋给 self.start_minigame_button_rect
-            if gs.game_state == self.ai_settings.MINI_GAME_STARTING and i == 1: # 假设它是第二个消息
-                self.start_minigame_button_rect = msg_rect
+        # 如果当前消息是“开始小游戏”按钮，则将其rect赋给 self.start_minigame_button_rect
+        if gs.game_state == self.ai_settings.MINI_GAME_STARTING and i == 1: # 假设它是第二个消息
+            self.start_minigame_button_rect = msg_rect
         
         # 设置“结束回合”按钮的位置 (仅在 END_ROUND 或 SHOW_MINI_GAME_RESULT 状态)
         if gs.game_state == self.ai_settings.END_ROUND or gs.game_state == self.ai_settings.SHOW_MINI_GAME_RESULT or gs.game_state ==self.ai_settings.SHOP_RESULT:

@@ -562,6 +562,7 @@ def run_specific_mini_game(ai_settings, screen, gs, current_player):
 
     gs.mini_game_result_message = game_result["message"]
     gs.mini_game_player_effect = game_result["effect"] # Store the effect
+    current_player.money += game_result["effect"] # Apply the effect to the player
 
     # Apply the effect to the player
     if isinstance(gs.mini_game_player_effect, (int, float)):
