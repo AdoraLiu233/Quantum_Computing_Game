@@ -2,70 +2,7 @@ import numpy as np
 import random
 import pygame
 import math
-
-class Qubit:
-    def __init__(self, alpha=1, beta=0):
-        self.alpha = complex(alpha)
-        self.beta = complex(beta)
-        self._normalize()
-    
-    def _normalize(self):
-        norm = np.sqrt(abs(self.alpha)**2 + abs(self.beta)**2)
-        if norm > 0:
-            self.alpha /= norm
-            self.beta /= norm
-    
-    def copy(self):
-        return Qubit(self.alpha, self.beta)
-    
-    def apply_rotation(self, angle):
-        """应用旋转门"""
-        cos_half = np.cos(angle/2)
-        sin_half = np.sin(angle/2)
-        gate = np.array([[cos_half, -sin_half], [sin_half, cos_half]])
-        state = np.array([self.alpha, self.beta])
-        new_state = gate @ state
-        self.alpha, self.beta = complex(new_state[0]), complex(new_state[1])
-        self._normalize()
-    
-    def measure_standard(self):
-        """标准基测量"""
-        prob_0 = abs(self.alpha)**2
-        result = 0 if random.random() < prob_0 else 1
-        self.alpha, self.beta = (1, 0) if result == 0 else (0, 1)
-        return result
-    
-    def measure_pm(self):
-        """±基测量"""
-        plus_amp = (self.alpha + self.beta) / np.sqrt(2)
-        prob_plus = abs(plus_amp)**2
-        result = 0 if random.random() < prob_plus else 1
-        if result == 0:  # |+>
-            self.alpha, self.beta = 1/np.sqrt(2), 1/np.sqrt(2)
-        else:  # |->
-            self.alpha, self.beta = 1/np.sqrt(2), -1/np.sqrt(2)
-        return result
-    
-    def blackbox_test(self, has_bomb):
-        """黑箱炸弹检测"""
-        if not has_bomb:
-            # 没有炸弹：量子比特保持原状态通过
-            return False  # 不爆炸
-        else:
-            # 有炸弹：炸弹对量子比特进行标准基测量
-            prob_0 = abs(self.alpha)**2
-            result = 0 if random.random() < prob_0 else 1
-            
-            # 量子比特状态坍缩
-            if result == 0:
-                self.alpha, self.beta = 1, 0  # 坍缩到|0>
-                return False  # 测量到|0>，不爆炸
-            else:
-                self.alpha, self.beta = 0, 1  # 坍缩到|1>
-                return True  # 测量到|1>，爆炸！
-    
-    def __str__(self):
-        return f"({self.alpha:.3f})|0> + ({self.beta:.3f})|1>"
+from player import Player, Qubit
 
 class QuantumBombGame:
     def __init__(self, screen, player):
