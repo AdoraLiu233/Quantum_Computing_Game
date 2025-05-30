@@ -135,6 +135,9 @@ class Qubit:
         self.alpha /= norm
         self.beta /= norm
     
+    def copy(self):
+        return Qubit(self.alpha, self.beta)
+    
     def measure(self):
         """
         |0>, |1>为基测量
@@ -154,7 +157,7 @@ class Qubit:
             self.beta = complex(1, 0)
             
         return outcome, score_change
-    
+
     def apply_gate(self, gate_matrix):
         new_alpha = gate_matrix[0][0] * self.alpha + gate_matrix[0][1] * self.beta
         new_beta = gate_matrix[1][0] * self.alpha + gate_matrix[1][1] * self.beta
@@ -163,3 +166,50 @@ class Qubit:
     
     def __str__(self):
         return f"{self.alpha}|0> + {self.beta}|1>"
+    
+    # 以下是和量子炸弹游戏相关的属性
+    def apply_rotation(self, angle):
+        """应用旋转门"""
+        cos_half = np.cos(angle/2)
+        sin_half = np.sin(angle/2)
+        gate = np.array([[cos_half, -sin_half], [sin_half, cos_half]])
+        state = np.array([self.alpha, self.beta])
+        new_state = gate @ state
+        self.alpha, self.beta = complex(new_state[0]), complex(new_state[1])
+        self._normalize()
+    
+    def measure_standard(self):
+        """标准基测量"""
+        prob_0 = abs(self.alpha)**2
+        result = 0 if random.random() < prob_0 else 1
+        self.alpha, self.beta = (1, 0) if result == 0 else (0, 1)
+        return result
+    
+    def measure_pm(self):
+        """±基测量"""
+        plus_amp = (self.alpha + self.beta) / np.sqrt(2)
+        prob_plus = abs(plus_amp)**2
+        result = 0 if random.random() < prob_plus else 1
+        if result == 0:  # |+>
+            self.alpha, self.beta = 1/np.sqrt(2), 1/np.sqrt(2)
+        else:  # |->
+            self.alpha, self.beta = 1/np.sqrt(2), -1/np.sqrt(2)
+        return result
+    
+    def blackbox_test(self, has_bomb):
+        """黑箱炸弹检测"""
+        if not has_bomb:
+            # 没有炸弹：量子比特保持原状态通过
+            return False  # 不爆炸
+        else:
+            # 有炸弹：炸弹对量子比特进行标准基测量
+            prob_0 = abs(self.alpha)**2
+            result = 0 if random.random() < prob_0 else 1
+            
+            # 量子比特状态坍缩
+            if result == 0:
+                self.alpha, self.beta = 1, 0  # 坍缩到|0>
+                return False  # 测量到|0>，不爆炸
+            else:
+                self.alpha, self.beta = 0, 1  # 坍缩到|1>
+                return True  # 测量到|1>，爆炸！
