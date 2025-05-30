@@ -42,10 +42,10 @@ def play(screen, ai_settings, current_player):
                 player.add_item(Item())
 
         elif item.char == 3:
-            if item.name == "量子位零":
-                player.add_qubit(Qubit(alpha=1))
-            elif item.name == "量子位一":
-                player.add_qubit(Qubit(beta=1))
+            if item.name == "量子位0":
+                player.add_qubit(Qubit(alpha=1,beta=0))
+            elif item.name == "量子位1":
+                player.add_qubit(Qubit(alpha=0,beta=1))
             elif item.name == "正向量子位":
                 player.add_qubit(Qubit(alpha=1, beta=1))
             elif item.name == "负向量子位":
