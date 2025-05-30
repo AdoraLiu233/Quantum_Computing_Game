@@ -136,7 +136,7 @@ class Messageboard():
                 result_img = self.font.render(gs.mini_game_result_message, True, result_color)
 
                 self.event_msg.append(result_img)
-                self.event_msg.append(f"当前资金：{player.money}")
+                # self.event_msg.append(f"当前资金：{player.money}")
             else:
                 self.event_msg.append(self.font.render("小游戏已结束。", True, self.text_color_2))
             # 在此状态下，也显示“结束回合”按钮，其rect在draw_messageboard中处理或者在这里设置
@@ -186,13 +186,13 @@ class Messageboard():
             self.event_msg.append(self.font.render("事件处理完毕。", True, self.text_color_2))
 
         # --- 统一处理消息和按钮的位置 ---
-        # current_y = self.box_3.top + 10
-        # for i, msg_img in enumerate(self.event_msg):
-        #     msg_rect = msg_img.get_rect()
-        #     msg_rect.top = current_y
-        #     msg_rect.left = self.box_3.left + 10
-        #     self.event_msg_rect.append(msg_rect)
-        #     current_y += msg_rect.height + 5
+        current_y = self.box_3.top + 10
+        for i, msg_img in enumerate(self.event_msg):
+            msg_rect = msg_img.get_rect()
+            msg_rect.top = current_y
+            msg_rect.left = self.box_3.left + 10
+            self.event_msg_rect.append(msg_rect)
+            current_y += msg_rect.height + 5
 
         # 如果当前消息是“开始小游戏”按钮，则将其rect赋给 self.start_minigame_button_rect
         if gs.game_state == self.ai_settings.MINI_GAME_STARTING and i == 1: # 假设它是第二个消息
@@ -215,6 +215,7 @@ class Messageboard():
             self.screen.blit(self.player_rendered_msgs[i][1], self.player_msg_rects[i][1])
 
         self.update_event_message(gs, pq.cur_player) # 更新事件/游戏状态信息
+        # print("len:",len(self.event_msg))
         for i in range(len(self.event_msg)):
             self.screen.blit(self.event_msg[i], self.event_msg_rect[i])
 

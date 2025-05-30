@@ -62,6 +62,7 @@ class Player():
         if qubit is None:
             qubit = Qubit()  # 默认|0>态
         qubit._normalize()
+        print("add qubit :",qubit.alpha, qubit.beta)
         self.qubits.append(qubit)
         self.qubit_count += 1
 
