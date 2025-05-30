@@ -345,30 +345,30 @@ class SimonGame:
     
     def use_superposition_input(self):
         """使用叠加态输入"""
-        if self.player.money < 20:
-            self.add_message("积分不足！", RED)
+        if self.player.money < 10:
+            self.add_message("余额不足！", RED)
             return
             
-        self.player.money -= 20
+        self.player.money -= 10
         self.quantum_state = QuantumState(self.n)
         self.quantum_state.apply_hadamard_a()
         
         binary_str = "0" * self.n
-        self.add_message(f"创建叠加态：H^⊗n|0> = Σ|x>，消耗20积分", GREEN)
+        self.add_message(f"创建叠加态：H^⊗n|0> = Σ|x>，消耗10金钱", GREEN)
         print(f"DEBUG: 创建叠加态完成")
     
     def use_custom_input(self, x):
         """使用自定义输入"""
-        if self.player.money < 5:
-            self.add_message("积分不足！", RED)
+        if self.player.money < 15:
+            self.add_message("余额不足！", RED)
             return
             
-        self.player.money -= 5
+        self.player.money -= 15
         self.quantum_state = QuantumState(self.n)
         self.quantum_state.set_input(x)
         
         x_str = bin(x)[2:].zfill(self.n)
-        self.add_message(f"创建纠缠态：|{x_str}>，消耗5积分", GREEN)
+        self.add_message(f"创建纠缠态：|{x_str}>，消耗5金钱", GREEN)
         print(f"DEBUG: 创建自定义输入完成")
     
     def query_oracle(self):
@@ -377,9 +377,9 @@ class SimonGame:
             self.add_message("Oracle查询次数已用完！", RED)
             return
             
-        cost = 25
+        cost = 0
         if self.player.money < cost:
-            self.add_message("积分不足！", RED)
+            self.add_message("余额不足！", RED)
             return
             
         self.player.money -= cost
@@ -388,13 +388,13 @@ class SimonGame:
         print(f"DEBUG: ----- Oracle查询 #{self.oracle_queries} -----")
         self.quantum_state.apply_oracle(self.oracle_func)
         self.add_message(f"Oracle查询 #{self.oracle_queries}", GREEN)
-        self.add_message("应用：|x>|0> -> |x>|f(x)>，消耗25积分", BLUE)
+        self.add_message("应用：|x>|0> -> |x>|f(x)>", BLUE)
     
     def measure_b(self):
         """测量寄存器B"""
         cost = 10
         if self.player.money < cost:
-            self.add_message("积分不足！", RED)
+            self.add_message("余额不足！", RED)
             return
             
         self.player.money -= cost
@@ -402,7 +402,7 @@ class SimonGame:
         measured_b, collapsed_a = self.quantum_state.measure_b()
         
         b_str = bin(measured_b)[2:].zfill(self.n)
-        self.add_message(f"测量B结果：({b_str})，消耗10积分", GREEN)
+        self.add_message(f"测量B结果：({b_str})，消耗10金钱", GREEN)
         
         # 记录测量结果（只要不是全0就记录）
         if measured_b != 0:
@@ -422,19 +422,19 @@ class SimonGame:
         """应用最终H变换"""
         cost = 15
         if self.player.money < cost:
-            self.add_message("积分不足！", RED)
+            self.add_message("余额不足！", RED)
             return
             
         self.player.money -= cost
         print(f"DEBUG: ----- 应用最终Hadamard变换 -----")
         self.quantum_state.apply_hadamard_a()
-        self.add_message("对A应用H变换，消耗15积分", GREEN)
+        self.add_message("对A应用H变换，消耗15金钱", GREEN)
     
     def measure_a(self):
         """测量寄存器A - 使用正确的概率分布"""
         cost = 10
         if self.player.money < cost:
-            self.add_message("积分不足！", RED)
+            self.add_message("金钱不足！", RED)
             return
             
         self.player.money -= cost
@@ -501,7 +501,7 @@ class SimonGame:
         if had_final_h and not is_orthogonal and not measured_y == 0:
             self.add_message("经过完整Simon算法流程，但没有给出正交向量。可能是数值误差或实现问题。", GOLD)
         
-        self.add_message("消耗10积分", ORANGE)
+        self.add_message("消耗10金钱", ORANGE)
         
         # 重置量子态
         self.quantum_state = QuantumState(self.n)
@@ -572,7 +572,7 @@ class SimonGame:
             
         cost = 80
         if self.player.money < cost:
-            self.add_message("积分不足！需要80积分", RED)
+            self.add_message("余额不足！需要80 yuan", RED)
             return
             
         self.player.money -= cost
@@ -681,7 +681,7 @@ class SimonGame:
         self.screen.blit(title_surface, title_rect)
         
         # 状态栏
-        status = f"积分:{self.player.money} | Oracle:{self.oracle_queries}/{self.max_queries}"
+        status = f"金钱:{self.player.money} | Oracle:{self.oracle_queries}/{self.max_queries}"
         if self.game_won:
             status += " | 胜利！"
         status_surface = font_small.render(status, True, NAVY)
@@ -697,11 +697,11 @@ class SimonGame:
         # 输入选择
         draw_panel(self.screen, 20, 160, 250, 160, "选择输入")
         self.button_rects["superposition"] = draw_button(self.screen, 30, 190, 230, 30, 
-                                                       "获得叠加态 (20积分)", GREEN, 
-                                                       self.player.money >= 20 and not self.game_won)
+                                                       "获得叠加态 (10金钱)", GREEN, 
+                                                       self.player.money >= 10 and not self.game_won)
         self.button_rects["custom"] = draw_button(self.screen, 30, 225, 230, 30, 
-                                                "获得自定义纠缠态 (5积分)", BLUE, 
-                                                self.player.money >= 5 and not self.game_won)
+                                                "获得自定义纠缠态 (15金钱)", BLUE, 
+                                                self.player.money >= 15 and not self.game_won)
         
         # 显示输入状态
         if self.input_active:
@@ -725,14 +725,14 @@ class SimonGame:
         
         y_pos = 370
         steps = [
-            ("oracle", "使用Oracle (25积分)", GREEN),
-            ("measure_b", "测量后寄存器B (10积分)", PURPLE),
-            ("final_h", "对前寄存器使用H变换 (15积分)", ORANGE),
-            ("measure_a", "测量前寄存器A (10积分)", RED)
+            ("oracle", "使用Oracle", GREEN),
+            ("measure_b", "测量后寄存器B (10金钱)", PURPLE),
+            ("final_h", "对前寄存器使用H变换 (15金钱)", ORANGE),
+            ("measure_a", "测量前寄存器A (10金钱)", RED)
         ]
         
         for btn_name, text, color in steps:
-            cost = {"oracle": 25, "measure_b": 10, "final_h": 15, "measure_a": 10}[btn_name]
+            cost = {"oracle": 0, "measure_b": 10, "final_h": 15, "measure_a": 10}[btn_name]
             enabled = (self.player.money >= cost and not self.game_won and 
                       (btn_name != "oracle" or self.oracle_queries < self.max_queries))
             self.button_rects[btn_name] = draw_button(self.screen, 30, y_pos, 230, 30, 
@@ -770,7 +770,7 @@ class SimonGame:
         draw_panel(self.screen, 20, 720, 250, 60, "帮助工具")
         
         hint_color = BLUE if self.hint_purchased else (BLUE if self.player.money >= 80 else RED)
-        hint_text = "查看提示" if self.hint_purchased else "算法提示 (80积分)"
+        hint_text = "查看提示" if self.hint_purchased else "算法提示 (80金钱)"
         self.button_rects["hint"] = draw_button(self.screen, 30, 745, 110, 25, 
                                               hint_text, hint_color, 
                                               self.hint_purchased or self.player.money >= 80)
@@ -791,7 +791,7 @@ class SimonGame:
         status_lines = [
             f"难度: n = {self.n}",
             f"目标: 找到{self.n}位隐藏字符串s",
-            f"当前积分: {self.player.money}",
+            f"当前金钱: {self.player.money}",
             f"Oracle查询: {self.oracle_queries}/{self.max_queries}",
             "",
             "测量结果:"
