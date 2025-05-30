@@ -1,6 +1,7 @@
 import numpy as np
 import random
 import pygame
+import math
 
 class Qubit:
     def __init__(self, alpha=1, beta=0):
@@ -435,15 +436,14 @@ class QuantumBombGame:
 
 def play(screen, ai_settings, current_player):
     # 确保玩家有必要的属性
-    # if not hasattr(current_player, 'qubits'):
-    #     current_player.qubits = [
-    #         Qubit(1, 0), Qubit(1/np.sqrt(2), 1/np.sqrt(2)), Qubit(0, 1),
-    #         Qubit(1/np.sqrt(2), -1/np.sqrt(2)), Qubit(0.8, 0.6)
-    #     ]
-    current_player.qubits = [
-        Qubit(1, 0), Qubit(1/np.sqrt(2), 1/np.sqrt(2)), Qubit(0, 1),
-        Qubit(1/np.sqrt(2), -1/np.sqrt(2)), Qubit(0.8, 0.6)
-    ]
+    if not hasattr(current_player, 'qubits'):
+        current_player.qubits = [
+            Qubit(1, 0), Qubit(1/np.sqrt(2), 1/np.sqrt(2)), Qubit(0, 1),
+            Qubit(1/np.sqrt(2), -1/np.sqrt(2)), Qubit(0.8, 0.6)
+        ]
+    current_player.qubits.append(Qubit(1, 0))
+    current_player.qubits.append(Qubit(1/math.sqrt(2), 1/math.sqrt(2)))
+    
     if not hasattr(current_player, 'money'):
         current_player.money = 100
     
