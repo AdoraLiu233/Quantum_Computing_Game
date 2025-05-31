@@ -67,7 +67,6 @@ def play(screen, ai_settings, current_player):
             pygame.image.load("images/card_H.png").convert_alpha(),
             pygame.image.load("images/card_Measure.png").convert_alpha(),
             pygame.image.load("images/card_Grab.png").convert_alpha(),
-            pygame.image.load("images/card_Dice.png").convert_alpha(),
             pygame.image.load("images/card_qubit_pos.png").convert_alpha(),
             pygame.image.load("images/card_qubit_neg.png").convert_alpha(),
             pygame.image.load("images/card_qubit_0.png").convert_alpha(),
@@ -191,16 +190,15 @@ def play(screen, ai_settings, current_player):
     return_button = ReturnButton(btn_return_image, 180, 800)
     # 创建商品列表
     items = [
-        ShopItem(item_images[0], 170, 230, 100, "X门",1),
+        ShopItem(item_images[0], 170, 230, 200, "X门",1),
         ShopItem(item_images[1], 370, 230, 200, "Z门",1),
-        ShopItem(item_images[2], 550, 230, 300, "H门",1),
-        ShopItem(item_images[3], 136, 410, 150, "测量卡",2),
+        ShopItem(item_images[2], 550, 230, 200, "H门",1),
+        ShopItem(item_images[3], 136, 410, 250, "测量卡",2),
         ShopItem(item_images[4], 292, 410, 250, "抢夺卡",2),
-        ShopItem(item_images[5], 447, 410, 350, "神奇骰子",2),
-        ShopItem(item_images[6], 130, 570, 120, "正向量子位",3),
-        ShopItem(item_images[7], 280, 570, 120, "负向量子位",3),
-        ShopItem(item_images[8], 440, 570, 150, "量子位0",3),
-        ShopItem(item_images[9], 600, 570, 150, "量子位1",3),
+        ShopItem(item_images[6], 130, 570, 520, "正向量子位",3),
+        ShopItem(item_images[7], 280, 570, 520, "负向量子位",3),
+        ShopItem(item_images[8], 440, 570, 320, "量子位0",3),
+        ShopItem(item_images[9], 600, 570, 320, "量子位1",3),
     ]
 
     # 玩家金币
