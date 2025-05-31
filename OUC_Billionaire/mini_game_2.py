@@ -91,18 +91,23 @@ def play(screen, gs, ai_settings):
     exit_button = pygame.Rect(BOARD_WIDTH + 20, button_start_y + 210, button_width, button_height)
 
     # Grover 操作（保持不变）
-    def grover_oracle(probs, target):
-        new_probs = probs.copy()
-        new_probs[target[0]][target[1]] *= -1
-        return new_probs
+    def grover_oracle(amplitudes, target):
+        new_amp = amplitudes.copy()
+        new_amp[target[0]][target[1]] *= -1
+        return new_amp
 
-    def diffusion_operator(probs):
-        mean = np.mean(probs)
-        new_probs = 2 * mean - probs
-        return new_probs / np.sum(new_probs)
+    def diffusion_operator(amplitudes):
+        mean_amplitude = np.mean(amplitudes)
+        amplitudes = (2 * mean_amplitude) - amplitudes
+        amplitudes=amplitudes / np.linalg.norm(amplitudes)
+        # mean = np.mean(probs)
+        # new_probs = 2 * mean - probs
+        return amplitudes
 
-    def get_hint(player_pos, probs):
-        max_prob_pos = np.unravel_index(np.argmax(probs), probs.shape)
+    def get_hint(player_pos, amplitudes):
+        probabilities = np.abs(amplitudes) ** 2
+        max_prob_pos = np.unravel_index(np.argmax(probabilities), probabilities.shape)
+        
         dr = max_prob_pos[0] - player_pos[0]
         dc = max_prob_pos[1] - player_pos[1]
         
