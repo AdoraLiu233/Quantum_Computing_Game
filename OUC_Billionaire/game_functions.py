@@ -836,8 +836,8 @@ def create_player_queue(ai_settings, screen, locations, pq):
     # 创建所有玩家
     player1 = Player(ai_settings, screen, locations, 1, "红色小人")
     player2 = Player(ai_settings, screen, locations, 2, "橙色小人")
-    player3 = Player(ai_settings, screen, locations, 3, "蓝色小人")
+    # player3 = Player(ai_settings, screen, locations, 3, "蓝色小人")
     # 将所有玩家加入游戏队列
     pq.add_player(player1)
     pq.add_player(player2)
-    pq.add_player(player3)
+    # pq.add_player(player3)
