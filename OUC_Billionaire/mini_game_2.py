@@ -100,14 +100,12 @@ def play(screen, gs, ai_settings):
         mean_amplitude = np.mean(amplitudes)
         amplitudes = (2 * mean_amplitude) - amplitudes
         amplitudes=amplitudes / np.linalg.norm(amplitudes)
-        # mean = np.mean(probs)
-        # new_probs = 2 * mean - probs
         return amplitudes
 
     def get_hint(player_pos, amplitudes):
         probabilities = np.abs(amplitudes) ** 2
         max_prob_pos = np.unravel_index(np.argmax(probabilities), probabilities.shape)
-        
+
         dr = max_prob_pos[0] - player_pos[0]
         dc = max_prob_pos[1] - player_pos[1]
         

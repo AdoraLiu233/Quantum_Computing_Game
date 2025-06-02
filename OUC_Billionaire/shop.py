@@ -195,10 +195,10 @@ def play(screen, ai_settings, current_player):
         ShopItem(item_images[2], 550, 230, 200, "H门",1),
         ShopItem(item_images[3], 136, 410, 250, "测量卡",2),
         ShopItem(item_images[4], 292, 410, 250, "抢夺卡",2),
-        ShopItem(item_images[6], 130, 570, 520, "正向量子位",3),
-        ShopItem(item_images[7], 280, 570, 520, "负向量子位",3),
-        ShopItem(item_images[8], 440, 570, 320, "量子位0",3),
-        ShopItem(item_images[9], 600, 570, 320, "量子位1",3),
+        ShopItem(item_images[5], 130, 570, 520, "正向量子位",3),
+        ShopItem(item_images[6], 280, 570, 520, "负向量子位",3),
+        ShopItem(item_images[7], 440, 570, 320, "量子位0",3),
+        ShopItem(item_images[8], 600, 570, 320, "量子位1",3),
     ]
 
     # 玩家金币
