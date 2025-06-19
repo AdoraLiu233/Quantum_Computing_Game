@@ -207,7 +207,7 @@ def draw_game_over_screen(screen, ai_settings, gs, pq):
     
     # 排名区域
     ranking_start_y = 320
-    sorted_players = sorted(pq.queue, key=lambda p: p.money, reverse=True)
+    sorted_players = sorted(pq.queue, key=lambda p: p.score, reverse=True)
     ranking_height = 80 + len(sorted_players) * 45
     
     # 排名背景框 - 白色背景
@@ -247,7 +247,7 @@ def draw_game_over_screen(screen, ai_settings, gs, pq):
         screen.blit(rank_num, rank_num_rect)
         
         # 玩家信息
-        player_info = font_small.render(f"{player.player_name}: ${player.money}", True, color)
+        player_info = font_small.render(f"{player.player_name}: ${player.score}", True, color)
         player_rect = player_info.get_rect(left=ai_settings.screen_width//2 - 210, 
                                          centery=ranking_start_y + 57 + i*40)
         screen.blit(player_info, player_rect)
@@ -836,8 +836,8 @@ def create_player_queue(ai_settings, screen, locations, pq):
     # 创建所有玩家
     player1 = Player(ai_settings, screen, locations, 1, "红色小人")
     player2 = Player(ai_settings, screen, locations, 2, "橙色小人")
-    player3 = Player(ai_settings, screen, locations, 3, "蓝色小人")
+    # player3 = Player(ai_settings, screen, locations, 3, "蓝色小人")
     # 将所有玩家加入游戏队列
     pq.add_player(player1)
     pq.add_player(player2)
-    pq.add_player(player3)
+    # pq.add_player(player3)
