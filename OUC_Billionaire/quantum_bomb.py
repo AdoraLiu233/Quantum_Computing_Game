@@ -439,8 +439,7 @@ def main():
         def __init__(self):
             self.money = 100
             self.qubits = [
-                Qubit(1, 0), Qubit(1/np.sqrt(2), 1/np.sqrt(2)), Qubit(0, 1),
-                Qubit(1/np.sqrt(2), -1/np.sqrt(2)), Qubit(0.8, 0.6)
+                Qubit(1/np.sqrt(2), 1/np.sqrt(2)), Qubit(0, 1), Qubit(0.8, 0.6)
             ]
     
     player = MockPlayer()

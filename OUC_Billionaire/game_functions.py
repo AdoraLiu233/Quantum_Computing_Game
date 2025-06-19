@@ -207,7 +207,7 @@ def draw_game_over_screen(screen, ai_settings, gs, pq):
     
     # 排名区域
     ranking_start_y = 320
-    sorted_players = sorted(pq.queue, key=lambda p: p.money, reverse=True)
+    sorted_players = sorted(pq.queue, key=lambda p: p.score, reverse=True)
     ranking_height = 80 + len(sorted_players) * 45
     
     # 排名背景框 - 白色背景
@@ -247,7 +247,7 @@ def draw_game_over_screen(screen, ai_settings, gs, pq):
         screen.blit(rank_num, rank_num_rect)
         
         # 玩家信息
-        player_info = font_small.render(f"{player.player_name}: ${player.money}", True, color)
+        player_info = font_small.render(f"{player.player_name}: ${player.score}", True, color)
         player_rect = player_info.get_rect(left=ai_settings.screen_width//2 - 210, 
                                          centery=ranking_start_y + 57 + i*40)
         screen.blit(player_info, player_rect)

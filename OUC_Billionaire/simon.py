@@ -420,7 +420,7 @@ class SimonGame:
     
     def apply_final_h(self):
         """应用最终H变换"""
-        cost = 15
+        cost = 5
         if self.player.money < cost:
             self.add_message("余额不足！", RED)
             return
@@ -428,7 +428,7 @@ class SimonGame:
         self.player.money -= cost
         print(f"DEBUG: ----- 应用最终Hadamard变换 -----")
         self.quantum_state.apply_hadamard_a()
-        self.add_message("对A应用H变换，消耗15金钱", GREEN)
+        self.add_message("对A应用H变换，消耗5金钱", GREEN)
     
     def measure_a(self):
         """测量寄存器A - 使用正确的概率分布"""
@@ -727,12 +727,12 @@ class SimonGame:
         steps = [
             ("oracle", "使用Oracle", GREEN),
             ("measure_b", "测量后寄存器B (10金钱)", PURPLE),
-            ("final_h", "对前寄存器使用H变换 (15金钱)", ORANGE),
+            ("final_h", "对前寄存器使用H变换 (5金钱)", ORANGE),
             ("measure_a", "测量前寄存器A (10金钱)", RED)
         ]
         
         for btn_name, text, color in steps:
-            cost = {"oracle": 0, "measure_b": 10, "final_h": 15, "measure_a": 10}[btn_name]
+            cost = {"oracle": 0, "measure_b": 10, "final_h": 5, "measure_a": 10}[btn_name]
             enabled = (self.player.money >= cost and not self.game_won and 
                       (btn_name != "oracle" or self.oracle_queries < self.max_queries))
             self.button_rects[btn_name] = draw_button(self.screen, 30, y_pos, 230, 30, 
