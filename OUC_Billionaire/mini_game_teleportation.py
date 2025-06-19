@@ -29,10 +29,12 @@ def play(screen, gs, ai_settings, qubit_to_steal):
     }
 
 class QuantumTeleportationGame:
-    def __init__(self, qubit_to_steal, screen_size=(800, 850)):
+    def __init__(self, qubit_to_steal, screen_size=(1200, 1000)):
         pygame.init()
         self.WIDTH, self.HEIGHT = screen_size
         self.screen = pygame.display.set_mode((self.WIDTH, self.HEIGHT))
+        self.measure_progress = 0  # 0~100
+        self.measuring_auto = False  # 是否自动进度
         pygame.display.set_caption("量子隐形传态协议")
         
         # 颜色和字体定义
@@ -75,13 +77,13 @@ class QuantumTeleportationGame:
         """初始化用户界面"""
         button_height = 50
         self.buttons = {
-            "start": pygame.Rect(300, 400, 200, button_height),
+            "start": pygame.Rect(520, 400, 200, button_height),
             "measure": pygame.Rect(300, 400, 200, button_height),
-            "X": pygame.Rect(200, 350, 100, button_height),
-            "Z": pygame.Rect(350, 350, 100, button_height),
-            "XZ": pygame.Rect(500, 350, 100, button_height),
-            "none": pygame.Rect(300, 420, 200, button_height),
-            "continue": pygame.Rect(300, 500, 200, button_height)
+            "X": pygame.Rect(400, 350, 100, button_height),
+            "Z": pygame.Rect(550, 350, 100, button_height),
+            "XZ": pygame.Rect(700, 350, 100, button_height),
+            "none": pygame.Rect(500, 420, 200, button_height),
+            "continue": pygame.Rect(520, 500, 200, button_height)
         }
         
     def run(self):
@@ -97,13 +99,21 @@ class QuantumTeleportationGame:
         while self.running:
             for event in pygame.event.get():
                 if event.type == QUIT:
-                    print("666666\n")
+                    # print("666666\n")
                     running = False
                     self.result["message"] = "游戏取消"
                 
                 if event.type == MOUSEBUTTONDOWN:
-                    print("444444\n")
+                    # print("444444\n")
                     self.handle_click(event.pos)
+
+            # 自动增加进度
+            if self.state == "measuring" and self.measure_progress < 100:
+                self.measure_progress += 1  # 控制速度，可调
+                if self.measure_progress >= 100:
+                    self.measure_progress = 100
+                    # 自动执行测量并跳转
+                    self.perform_measurement()
             
             self.draw()
             pygame.display.flip()
@@ -115,9 +125,11 @@ class QuantumTeleportationGame:
         """处理鼠标点击事件"""
         if self.state == "intro" and self.buttons["start"].collidepoint(mouse_pos):
             self.state = "measuring"
+            self.measure_progress = 0  # 重置进度
             
-        elif self.state == "measuring" and self.buttons["measure"].collidepoint(mouse_pos):
-            self.perform_measurement()
+        # elif self.state == "measuring" and self.buttons["measure"].collidepoint(mouse_pos):
+        #     if self.measure_progress >= 100:
+        #         self.perform_measurement()
             
         elif self.state == "gate_selection":
             self.handle_gate_selection(mouse_pos)
@@ -189,7 +201,7 @@ class QuantumTeleportationGame:
         
         for i, line in enumerate(lines):
             text = self.small_font.render(line, True, self.COLORS["BLACK"])
-            self.screen.blit(text, (50, 180 + i * 30))
+            self.screen.blit(text, (400, 180 + i * 30))
         
         self.draw_button("start", "开始协议", self.COLORS["ORACLE"])
     
@@ -197,10 +209,23 @@ class QuantumTeleportationGame:
         """绘制测量界面"""
         title = self.font.render("贝尔测量阶段", True, self.COLORS["BLUE"])
         self.screen.blit(title, (self.WIDTH//2 - title.get_width()//2, 100))
-        
         # 绘制量子电路图示
-        pygame.draw.rect(self.screen, self.COLORS["DIFFUSION"], (400, 200, 50, 100))
-        self.draw_button("measure", "进行测量", self.COLORS["CHECK"])
+        # pygame.draw.rect(self.screen, self.COLORS["DIFFUSION"], (400, 200, 50, 100))
+        
+        # 绘制进度条
+        bar_w, bar_h = 400, 30
+        bar_x = self.WIDTH // 2 - bar_w // 2
+        bar_y = 350
+        pygame.draw.rect(self.screen, self.COLORS["BLACK"], (bar_x, bar_y, bar_w, bar_h), 2)
+        fill_w = int(bar_w * self.measure_progress / 100)
+        pygame.draw.rect(self.screen, self.COLORS["GREEN"], (bar_x, bar_y, fill_w, bar_h))
+        progress_text = self.small_font.render(f"测量进度: {self.measure_progress:.0f}%", True, self.COLORS["BLACK"])
+        self.screen.blit(progress_text, (bar_x + bar_w // 2 - progress_text.get_width() // 2, bar_y + bar_h + 5))
+        
+        # if self.measure_progress >= 100:
+        #     self.draw_button("measure", "进行测量", self.COLORS["CHECK"])
+        # else:
+        #     self.draw_button("measure", "进行测量", (180, 180, 180))  # 灰色，不可点
     
     def draw_gate_selection(self):
         """绘制门选择界面"""

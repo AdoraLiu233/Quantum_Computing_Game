@@ -629,6 +629,8 @@ def check_click_events(ai_settings, gs, play_button, locations, messageboard, di
             gs.current_mini_game_id = None
             pq.next_round()
 
+            if hasattr(gs, 'temp_message'):
+                gs.temp_message = ""
             if pq.is_round_completed():
                 gs.increment_round()
             if pq.is_round_completed():
@@ -778,6 +780,11 @@ def run_specific_mini_game(ai_settings, screen, gs, current_player):
             if 0 <= index < len(target.qubits):
                 stolen_qubit = target.qubits.pop(index)
                 current_player.qubits.append(stolen_qubit)
+        # 移除一张抢夺卡
+        for item in current_player.items:
+            if isinstance(item, StealCard):
+                current_player.items.remove(item)
+                break
         
         # 填充主程序结果
         game_result = {
